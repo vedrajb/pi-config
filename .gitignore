@@ -1,1 +1,7 @@
 nul
+.trash/
+node_modules/
+.env
+.env.*
+auth.json
+*.log

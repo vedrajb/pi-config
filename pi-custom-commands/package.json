@@ -1,0 +1,20 @@
+{
+  "name": "pi-agent-shortcuts",
+  "version": "1.0.0",
+  "description": "Pi commands and keyboard shortcut for switching agents",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./agent-shortcuts.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "scripts": {
+    "test": "node --test agent-shortcuts.test.ts"
+  }
+}
