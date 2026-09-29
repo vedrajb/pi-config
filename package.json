@@ -1,0 +1,21 @@
+{
+  "name": "pi-aws-sso",
+  "version": "0.1.0",
+  "description": "Automatically authenticate AWS SSO when Pi selects Amazon Bedrock.",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "files": [
+    "README.md",
+    "aws-sso.ts",
+    "src"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
