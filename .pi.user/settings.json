@@ -6,7 +6,7 @@
   "defaultAgent": "default",
   "theme": "dark",
   "packages": [
-    "..\\..\\workspace\\_ai\\pi-stuff\\pi-auth-bedrock",
+    "..\\..\\workspace\\_ai\\pi-stuff\\pi-aws-sso",
     "npm:pi-open-agents",
     "..\\..\\workspace\\_ai\\pi-stuff\\pi-custom-commands"
   ],
