@@ -22,15 +22,9 @@ function createTestPi() {
 	return { shortcuts, commands, sentMessages };
 }
 
-test("shift+tab cycles plan, architect, review", async () => {
-	const { shortcuts, sentMessages } = createTestPi();
-	const shortcut = shortcuts.get("shift+tab")!;
-	for (let i = 0; i < 5; i++) await shortcut.handler();
-
-	assert.deepEqual(
-		sentMessages.map(([message]) => message),
-		["/agent plan", "/agent architect", "/agent review", "/agent plan", "/agent architect"],
-	);
+test("shift+tab shortcut is not registered", () => {
+	const { shortcuts } = createTestPi();
+	assert.equal(shortcuts.has("shift+tab"), false);
 });
 
 test("slash commands switch to their matching agents", async () => {
