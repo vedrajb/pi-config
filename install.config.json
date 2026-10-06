@@ -1,0 +1,3 @@
+{
+  "packages": ["./pi-custom-commands", "npm:pi-open-agents"]
+}
