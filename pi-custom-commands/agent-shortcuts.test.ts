@@ -22,25 +22,35 @@ function createTestPi() {
 	return { shortcuts, commands, sentMessages };
 }
 
-test("shift+tab cycles plan, architect, review, default", async () => {
+test("shift+tab cycles plan, architect, review", async () => {
 	const { shortcuts, sentMessages } = createTestPi();
 	const shortcut = shortcuts.get("shift+tab")!;
 	for (let i = 0; i < 5; i++) await shortcut.handler();
 
 	assert.deepEqual(
 		sentMessages.map(([message]) => message),
-		["/agent plan", "/agent architect", "/agent review", "/agent default", "/agent plan"],
+		["/agent plan", "/agent architect", "/agent review", "/agent plan", "/agent architect"],
 	);
 });
 
 test("slash commands switch to their matching agents", async () => {
 	const { commands, sentMessages } = createTestPi();
-	for (const mode of ["plan", "architect", "review", "default", "none"]) {
+	for (const mode of ["plan", "architect", "none"]) {
 		await commands.get(mode)!.handler();
 	}
 
 	assert.deepEqual(
 		sentMessages.map(([message]) => message),
-		["/agent plan", "/agent architect", "/agent review", "/agent default", "/agent none"],
+		["/agent plan", "/agent architect", "/agent none"],
 	);
+});
+
+test("default agent command is not registered", () => {
+	const { commands } = createTestPi();
+	assert.equal(commands.has("default"), false);
+});
+
+test("review agent command is not registered", () => {
+	const { commands } = createTestPi();
+	assert.equal(commands.has("review"), false);
 });

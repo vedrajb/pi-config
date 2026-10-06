@@ -1,27 +1,19 @@
 {
-  "lastChangelogVersion": "0.87.1",
-  "defaultProvider": "amazon-bedrock",
-  "defaultModel": "global.anthropic.claude-opus-5-5",
-  "defaultThinkingLevel": "low",
-  "defaultAgent": "default",
+  "defaultThinkingLevel": "medium",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-5-5",
   "theme": "dark",
   "packages": [
-    "..\\..\\workspace\\_ai\\pi-stuff\\pi-aws-sso",
     "npm:pi-open-agents",
-    "..\\..\\workspace\\_ai\\pi-stuff\\pi-custom-commands"
+    "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands"
   ],
   "enabledModels": [
-    "openai-codex/gpt-5.6-luna",
-    "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-sol",
+    "anthropic/claude-opus-5-5",
+    "anthropic/claude-sonnet-5-5",
+    "anthropic/claude-fable-5-1",
+    "anthropic/claude-haiku-4-5",
     "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6-luna",
     "openai-codex/gpt-6-sol",
-    "amazon-bedrock/us.openai.gpt-5.6-luna",
-    "amazon-bedrock/us.openai.gpt-5.6-sol",
-    "amazon-bedrock/us.openai.gpt-6-astra",
-    "amazon-bedrock/us.openai.gpt-5.6-terra",
-    "amazon-bedrock/global.anthropic.claude-opus-5-5",
-    "amazon-bedrock/global.anthropic.claude-sonnet-5"
+    "openai-codex/gpt-6-luna"
   ]
 }

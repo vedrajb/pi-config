@@ -1,11 +1,21 @@
 # Agent Execution Guardrails (Windows)
 
+## Delegation
+
+Always use `scout` for file search and codebase investigation.
+Multiple scouts may be used in parallel for independent questions.
+
+Use `worker` for clearly scoped implementation work.
+
+In plan mode, use scouts only. Do not delegate implementation to workers.
+
 ## Coding Guidelines
 
 - DO NOT change existing variable names.
 - DO NOT refactor or redesign existing code unless you get confirmation from user.
 
 ## Workspace boundaries
+
 - Never modify system files unless explicitly requested and confirmed.
 - Never target entire drives or root paths (e.g., `C:\`, `D:\`, `/`, `~`) unless explicitly requested and confirmed.
 - Request permission and show the exact change for any of the above guardrails.
@@ -56,4 +66,3 @@ Explain consequences clearly.
 - Report test failures and handle test updates as below:
   - Request permission to update tests that were previous committed.
   - No need for permission to update tests that are not committed yet.
-

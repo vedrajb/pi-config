@@ -34,12 +34,8 @@ committed tests.
 
 ## Select an agent automatically
 
-This setup starts new Pi sessions with `orchestrator` selected. The global
-`~/.pi/agent/settings.json` contains this property alongside the existing
-model and package settings:
-
 ```json
-"defaultAgent": "orchestrator"
+"defaultAgent": "plan"
 ```
 
 Restart Pi after changing the setting. The selected agent supplies its own
