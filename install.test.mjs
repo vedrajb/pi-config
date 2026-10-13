@@ -12,9 +12,9 @@ function tempDir() {
 	return mkdtempSync(join(tmpdir(), "pi-install-test-"));
 }
 
-test("install.config.json lists pi-custom-commands and pi-open-agents", () => {
+test("install.config.json lists pi-custom-commands, pi-guardrails and pi-open-agents", () => {
 	const config = loadConfig(join(repoRoot, "install.config.json"));
-	assert.deepEqual(config.packages, ["./pi-custom-commands", "npm:pi-open-agents"]);
+	assert.deepEqual(config.packages, ["./pi-custom-commands", "./pi-guardrails", "npm:pi-open-agents"]);
 });
 
 test("loadConfig rejects missing or invalid packages", () => {

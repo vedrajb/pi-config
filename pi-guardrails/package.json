@@ -1,0 +1,20 @@
+{
+	"name": "pi-guardrails",
+	"version": "1.0.0",
+	"description": "Pi guardrails: enforce scout delegation for search and caveman-commit skill before git commit",
+	"type": "module",
+	"keywords": [
+		"pi-package"
+	],
+	"pi": {
+		"extensions": [
+			"./guardrails.ts"
+		]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"scripts": {
+		"test": "node --test guardrails.test.ts"
+	}
+}

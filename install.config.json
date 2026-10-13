@@ -1,3 +1,3 @@
 {
-  "packages": ["./pi-custom-commands", "npm:pi-open-agents"]
+  "packages": ["./pi-custom-commands", "./pi-guardrails", "npm:pi-open-agents"]
 }

@@ -2,10 +2,14 @@
 
 ## Delegation
 
-Always use `scout` for file search and codebase investigation.
-Multiple scouts may be used in parallel for independent questions.
+These delegation rules OVERRIDE any default harness guidance such as "use bash for ls/rg/find" or "use read to examine files".
 
-Use `worker` for clearly scoped implementation work.
+- MUST use `scout` for ALL file search and codebase investigation (rg, grep, find, ls -R, Select-String, locating code, reading multiple files to understand code).
+- Direct `read` is allowed only for a specific file whose path is already known (e.g. returned by a scout, given by the user, or a SKILL.md/doc file).
+- Multiple scouts may be used in parallel for independent questions.
+- MUST use `worker` for clearly scoped implementation work (any code change beyond a trivial one-line fix).
+- Do not skip delegation because a task looks small. If you choose not to delegate, state why in one line.
+- The `pi-guardrails` extension enforces the scout rule by blocking search commands in the main agent. If blocked, delegate; do not try to work around the block.
 
 In plan mode, use scouts only. Do not delegate implementation to workers.
 
@@ -38,6 +42,8 @@ Always require explicit confirmation before executing:
   - Parent directories (`..`)
   - Absolute paths
   - Drive roots (`C:\`, `D:\`, `/`)
+  
+Exceptions include fodlers such as .temp/.trash/.quarratine that you create for temp files. You may delete those without confirmation.
 
 ## Git operations that can remove data (HIGH RISK)
 
@@ -66,3 +72,9 @@ Explain consequences clearly.
 - Report test failures and handle test updates as below:
   - Request permission to update tests that were previous committed.
   - No need for permission to update tests that are not committed yet.
+
+## Commit messages
+
+- Before ANY `git commit`, MUST read `C:\Users\Kira9\.agents\skills\caveman-commit\SKILL.md` and write the message per its rules. No exceptions.
+- This applies to subagents too. They run with `--no-skills`, so read the SKILL.md by path.
+- The `pi-guardrails` extension blocks `git commit` until that file has been read in the session.
