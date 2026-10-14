@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { installPackages, loadConfig, resolveSource } from "./install.mjs";
+import { copyUserConfig, installPackages, loadConfig, resolveSource } from "./install.mjs";
 
 const repoRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -76,4 +76,47 @@ test("dry run logs commands without running them", () => {
 		"[dry-run] pi install npm:b",
 		"[dry-run] pi update npm:b",
 	]);
+});
+
+function userConfigFixture() {
+	const sourceDir = tempDir();
+	const targetDir = join(tempDir(), "agent");
+	mkdirSync(join(sourceDir, "agents", "sub"), { recursive: true });
+	writeFileSync(join(sourceDir, "agents", "a.md"), "A");
+	writeFileSync(join(sourceDir, "agents", "sub", "b.md"), "B");
+	writeFileSync(join(sourceDir, "AGENTS.md"), "RULES");
+	writeFileSync(join(sourceDir, "settings.json"), "{}");
+	return { sourceDir, targetDir };
+}
+
+test("copyUserConfig copies agents folder recursively and AGENTS.md, overwriting and keeping extras", () => {
+	const { sourceDir, targetDir } = userConfigFixture();
+	mkdirSync(join(targetDir, "agents"), { recursive: true });
+	writeFileSync(join(targetDir, "agents", "a.md"), "old");
+	writeFileSync(join(targetDir, "agents", "extra.md"), "keep");
+	copyUserConfig({ sourceDir, targetDir, log: () => {} });
+	assert.equal(readFileSync(join(targetDir, "agents", "a.md"), "utf8"), "A");
+	assert.equal(readFileSync(join(targetDir, "agents", "sub", "b.md"), "utf8"), "B");
+	assert.equal(readFileSync(join(targetDir, "agents", "extra.md"), "utf8"), "keep");
+	assert.equal(readFileSync(join(targetDir, "AGENTS.md"), "utf8"), "RULES");
+});
+
+test("copyUserConfig dry run logs without copying", () => {
+	const { sourceDir, targetDir } = userConfigFixture();
+	const logs = [];
+	copyUserConfig({ sourceDir, targetDir, dryRun: true, log: (m) => logs.push(m) });
+	assert.equal(existsSync(targetDir), false);
+	assert.deepEqual(logs, [
+		`[dry-run] copy ${resolve(sourceDir, "agents")} -> ${resolve(targetDir, "agents")}`,
+		`[dry-run] copy ${resolve(sourceDir, "AGENTS.md")} -> ${resolve(targetDir, "AGENTS.md")}`,
+	]);
+});
+
+test("copyUserConfig does not copy settings.json", () => {
+	const { sourceDir, targetDir } = userConfigFixture();
+	const copied = [];
+	copyUserConfig({ sourceDir, targetDir, log: () => {}, copy: (src) => copied.push(src) });
+	assert.deepEqual(copied, [resolve(sourceDir, "agents"), resolve(sourceDir, "AGENTS.md")]);
+	copyUserConfig({ sourceDir, targetDir, log: () => {} });
+	assert.equal(existsSync(join(targetDir, "settings.json")), false);
 });

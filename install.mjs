@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Installs the Pi packages listed in install.config.json with `pi install`.
 // Remote (npm:/git:/URL) packages are also upgraded with `pi update <source>`.
+// Afterwards copies .pi.user/agents/ and .pi.user/AGENTS.md into ~/.pi/agent/ (overwriting, never deleting).
 // Usage: node install.mjs [--dry-run]
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -47,6 +49,35 @@ export function installPackages(
 	return sources;
 }
 
+// Only these entries of .pi.user are copied; settings.json and anything else is left alone.
+const userConfigEntries = ["agents", "AGENTS.md"];
+
+export function copyUserConfig({
+	sourceDir = resolve(repoRoot, ".pi.user"),
+	targetDir = resolve(homedir(), ".pi", "agent"),
+	dryRun = false,
+	log = console.log,
+	copy = copyRecursive,
+} = {}) {
+	const prefix = dryRun ? "[dry-run] " : "";
+	const copied = [];
+	for (const entry of userConfigEntries) {
+		const src = resolve(sourceDir, entry);
+		if (!existsSync(src)) throw new Error(`User config path not found: ${src}`);
+		const dest = resolve(targetDir, entry);
+		log(`${prefix}copy ${src} -> ${dest}`);
+		if (!dryRun) copy(src, dest);
+		copied.push(dest);
+	}
+	return copied;
+}
+
+// Overwrites existing files; extra files already in dest are kept.
+function copyRecursive(src, dest) {
+	mkdirSync(dirname(dest), { recursive: true });
+	cpSync(src, dest, { recursive: true, force: true });
+}
+
 function runPiInstall(source) {
 	runPi("install", source);
 }
@@ -65,7 +96,9 @@ function runPi(command, source) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
 	try {
 		const config = loadConfig(resolve(repoRoot, "install.config.json"));
-		installPackages(config, { baseDir: repoRoot, dryRun: process.argv.includes("--dry-run") });
+		const dryRun = process.argv.includes("--dry-run");
+		installPackages(config, { baseDir: repoRoot, dryRun });
+		copyUserConfig({ dryRun });
 	} catch (error) {
 		console.error(error.message);
 		process.exit(1);
