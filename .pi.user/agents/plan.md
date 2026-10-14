@@ -12,7 +12,6 @@ permission:
 
 allowedAgents:
   - scout
-  - oracle
 
 maxDepth: 1
 ---
@@ -31,15 +30,6 @@ Use `scout` when:
 - multiple independent areas need investigation
 
 You may use multiple scouts for independent investigations.
-
-Use `oracle` when:
-
-- there are meaningful architectural tradeoffs
-- the proposed approach carries significant risk
-- assumptions should be challenged
-- the correct direction is unclear
-
-Do not invoke oracle routinely.
 
 When planning:
 

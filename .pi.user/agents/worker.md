@@ -3,6 +3,7 @@ name: worker
 description: Implement a well-defined software change, validate it, and report the result.
 mode: subagent
 thinking: medium
+model: anthropic/claude-sonnet-5-5
 
 permission:
   "*": allow

@@ -3,6 +3,7 @@ name: reviewer
 description: Independently review an implementation for correctness, regressions, edge cases, and missing validation.
 mode: subagent
 thinking: high
+model: anthropic/claude-opus-5-5
 
 permission:
   "*": deny

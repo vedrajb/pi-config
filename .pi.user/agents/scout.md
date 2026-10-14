@@ -2,7 +2,8 @@
 name: scout
 description: Quickly explore the repository and return focused code context without modifying anything.
 mode: subagent
-thinking: low
+thinking: medium
+model: anthropic/claude-haiku-5-5
 
 permission:
   "*": deny
