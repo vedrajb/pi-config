@@ -1,7 +1,7 @@
 {
   "name": "pi-agent-shortcuts",
   "version": "1.0.0",
-  "description": "Pi commands and keyboard shortcut for switching agents",
+  "description": "Pi parent workflow commands for planning, orchestration, and normal implementation",
   "type": "module",
   "keywords": [
     "pi-package"

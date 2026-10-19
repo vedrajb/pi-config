@@ -1,18 +1,18 @@
 ---
 name: worker
 description: Implement a well-defined software change, validate it, and report the result.
-mode: subagent
-thinking: medium
+thinking: high
 model: anthropic/claude-sonnet-5-5
 
-permission:
-  "*": allow
-  subagent: allow
-
+systemPromptMode: replace
+inheritProjectContext: true
+inheritGlobalContext: false
+inheritSkills: true
+allowNestedSubagents: true
 allowedAgents:
   - reviewer
 
-maxDepth: 1
+maxSubagentDepth: 2
 ---
 
 You are an implementation specialist.

@@ -2,9 +2,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-// pi-open-agents sets PI_OPEN_AGENTS_DEPTH on child processes; depth > 0 means we are a subagent.
 export function isSubagentProcess(env: NodeJS.ProcessEnv = process.env): boolean {
-	return Number(env.PI_OPEN_AGENTS_DEPTH ?? 0) > 0;
+	return env.PI_SUBAGENT_CHILD === "1";
 }
 
 // Best-effort shell split into command segments (does not respect quotes).
@@ -107,7 +106,7 @@ export default function (pi: ExtensionAPI): void {
 			skillRead = true;
 		}
 
-		// Commit gate: applies to all processes, since subagents run with --no-skills.
+		// Commit gate: applies to every process that loads this extension.
 		if (SHELL_TOOLS.has(tool) && isGitCommit(command) && !skillRead) {
 			return {
 				block: true,

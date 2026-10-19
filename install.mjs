@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Installs the Pi packages listed in install.config.json with `pi install`.
 // Remote (npm:/git:/URL) packages are also upgraded with `pi update <source>`.
-// Afterwards copies .pi.user/agents/ and .pi.user/AGENTS.md into ~/.pi/agent/ (overwriting, never deleting).
+// Backs up user configuration, deploys agents, merges workflow settings, and removes replaced packages.
 // Usage: node install.mjs [--dry-run]
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -15,6 +15,12 @@ export function loadConfig(configPath) {
 	const config = JSON.parse(readFileSync(configPath, "utf8"));
 	if (!Array.isArray(config.packages) || config.packages.some((p) => typeof p !== "string" || !p.trim())) {
 		throw new Error(`${configPath}: "packages" must be an array of non-empty strings`);
+	}
+	if (config.removePackages !== undefined && (!Array.isArray(config.removePackages) || config.removePackages.some((p) => typeof p !== "string" || !p.trim()))) {
+		throw new Error(`${configPath}: "removePackages" must be an array of non-empty strings`);
+	}
+	if (config.packages.some((source) => config.removePackages?.includes(source))) {
+		throw new Error(`${configPath}: packages cannot also appear in removePackages`);
 	}
 	return config;
 }
@@ -49,7 +55,7 @@ export function installPackages(
 	return sources;
 }
 
-// Only these entries of .pi.user are copied; settings.json and anything else is left alone.
+// settings.json is merged separately; extra user files are retained.
 const userConfigEntries = ["agents", "AGENTS.md"];
 
 export function copyUserConfig({
@@ -66,10 +72,103 @@ export function copyUserConfig({
 		if (!existsSync(src)) throw new Error(`User config path not found: ${src}`);
 		const dest = resolve(targetDir, entry);
 		log(`${prefix}copy ${src} -> ${dest}`);
-		if (!dryRun) copy(src, dest);
+		if (!dryRun) {
+			if (entry === "AGENTS.md" && copy === copyRecursive && existsSync(dest)) {
+				writeFileSync(dest, mergeInstructions(readFileSync(dest, "utf8"), readFileSync(src, "utf8")));
+			} else copy(src, dest);
+		}
 		copied.push(dest);
 	}
 	return copied;
+}
+
+export function mergeInstructions(existing, incoming) {
+	for (const heading of ["Delegation", "Complex / Architect Workflow", "Plan mode"]) {
+		const pattern = new RegExp(`^## ${heading}\\r?\\n[\\s\\S]*?(?=^## |$(?![\\s\\S]))`, "m");
+		const section = incoming.match(pattern)?.[0];
+		if (!section) continue;
+		existing = pattern.test(existing)
+			? existing.replace(pattern, () => `${section.trimEnd()}\n\n`)
+			: `${existing.trimEnd()}\n\n${section.trimEnd()}\n`;
+	}
+	return `${existing.trimEnd()}\n`;
+}
+
+export function mergeSettings(existing) {
+	if (!existing || typeof existing !== "object" || Array.isArray(existing)) throw new Error("settings.json must contain an object");
+	if (existing.packages !== undefined && (!Array.isArray(existing.packages) || existing.packages.some((entry) =>
+		typeof entry !== "string" && (!entry || typeof entry !== "object" || typeof entry.source !== "string")))) {
+		throw new Error("Existing packages settings must contain package sources");
+	}
+	for (const value of [existing.subagents, existing.subagents?.agentOverrides, existing.subagents?.agentOverrides?.architect]) {
+		if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value))) {
+			throw new Error("Existing subagents settings must contain objects");
+		}
+	}
+	return {
+		...existing,
+		subagents: {
+			...existing.subagents,
+			agentOverrides: {
+				...existing.subagents?.agentOverrides,
+				architect: { ...existing.subagents?.agentOverrides?.architect, disabled: true },
+			},
+		},
+	};
+}
+
+export function backupUserConfig({ targetDir, dryRun = false, log = console.log }) {
+	const entries = ["settings.json", ...userConfigEntries].filter((entry) => existsSync(resolve(targetDir, entry)));
+	if (!entries.length) return undefined;
+	const prefix = dryRun ? "[dry-run] " : "";
+	const backupRoot = resolve(targetDir, "backup-open-agents");
+	log(`${prefix}backup ${entries.join(", ")} -> ${backupRoot}/<unique-directory>`);
+	if (dryRun) return undefined;
+	mkdirSync(backupRoot, { recursive: true });
+	const backupDir = mkdtempSync(resolve(backupRoot, `${new Date().toISOString().replace(/[:.]/g, "-")}-`));
+	for (const entry of entries) copyRecursive(resolve(targetDir, entry), resolve(backupDir, entry));
+	log(`Backup saved: ${backupDir}`);
+	return backupDir;
+}
+
+export function migrateUserConfig(config, {
+	baseDir = repoRoot,
+	sourceDir = resolve(baseDir, ".pi.user"),
+	targetDir = resolve(homedir(), ".pi", "agent"),
+	dryRun = false,
+	run = runPiInstall,
+	update = runPiUpdate,
+	remove = (source) => runPi("uninstall", source),
+	log = console.log,
+} = {}) {
+	config.packages.forEach((source) => resolveSource(source, baseDir));
+	for (const entry of userConfigEntries) {
+		if (!existsSync(resolve(sourceDir, entry))) throw new Error(`User config path not found: ${resolve(sourceDir, entry)}`);
+	}
+	const settingsPath = resolve(targetDir, "settings.json");
+	mergeSettings(existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {});
+	const backupDir = backupUserConfig({ targetDir, dryRun, log });
+	installPackages(config, { baseDir, dryRun, run, update, log });
+	copyUserConfig({ sourceDir, targetDir, dryRun, log });
+	log(`${dryRun ? "[dry-run] " : ""}merge workflow settings -> ${settingsPath}`);
+	if (!dryRun) {
+		const existing = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {};
+		writeFileSync(settingsPath, `${JSON.stringify(mergeSettings(existing), null, 2)}\n`);
+	}
+	for (const source of config.removePackages ?? []) {
+		const existing = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {};
+		const registered = (existing.packages ?? []).map((entry) => typeof entry === "string" ? entry : entry.source)
+			.filter((entry) => entry === source || (source.startsWith("npm:") && entry.startsWith(`${source}@`)));
+		if (!dryRun && !registered.length) {
+			log(`skip uninstall ${source} (not registered)`);
+			continue;
+		}
+		for (const entry of registered.length ? registered : [source]) {
+			log(`${dryRun ? "[dry-run] " : ""}pi uninstall ${entry}`);
+			if (!dryRun) remove(entry);
+		}
+	}
+	return backupDir;
 }
 
 // Overwrites existing files; extra files already in dest are kept.
@@ -97,8 +196,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
 	try {
 		const config = loadConfig(resolve(repoRoot, "install.config.json"));
 		const dryRun = process.argv.includes("--dry-run");
-		installPackages(config, { baseDir: repoRoot, dryRun });
-		copyUserConfig({ dryRun });
+		migrateUserConfig(config, { baseDir: repoRoot, dryRun });
 	} catch (error) {
 		console.error(error.message);
 		process.exit(1);

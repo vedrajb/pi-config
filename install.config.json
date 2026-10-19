@@ -1,3 +1,4 @@
 {
-  "packages": ["./pi-custom-commands", "./pi-guardrails", "npm:pi-open-agents"]
+  "packages": ["./pi-custom-commands", "./pi-guardrails", "npm:pi-subagents"],
+  "removePackages": ["npm:pi-open-agents"]
 }

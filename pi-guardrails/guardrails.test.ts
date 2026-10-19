@@ -6,7 +6,7 @@ const SKILL = "C:\\Users\\x\\.agents\\skills\\caveman-commit\\SKILL.md";
 let saved: NodeJS.ProcessEnv;
 beforeEach(() => {
 	saved = { ...process.env };
-	delete process.env.PI_OPEN_AGENTS_DEPTH;
+	delete process.env.PI_SUBAGENT_CHILD;
 	delete process.env.PI_GUARDRAILS_SEARCH;
 	delete process.env.PI_CAVEMAN_COMMIT_SKILL;
 });
@@ -34,8 +34,10 @@ function createTestPi() {
 describe("helpers", () => {
 	test("isSubagentProcess", () => {
 		assert.equal(isSubagentProcess({}), false);
-		assert.equal(isSubagentProcess({ PI_OPEN_AGENTS_DEPTH: "0" }), false);
-		assert.equal(isSubagentProcess({ PI_OPEN_AGENTS_DEPTH: "1" }), true);
+		assert.equal(isSubagentProcess({ PI_SUBAGENT_CHILD: "0" }), false);
+		assert.equal(isSubagentProcess({ PI_SUBAGENT_CHILD: "1" }), true);
+		assert.equal(isSubagentProcess({ PI_SUBAGENT_CHILD: "false" }), false);
+		assert.equal(isSubagentProcess({ PI_SUBAGENT_MAX_DEPTH: "2" }), false);
 	});
 	test("isGitCommit", () => {
 		assert.equal(isGitCommit("git commit -m x"), true);
@@ -107,7 +109,7 @@ describe("factory", () => {
 		assert.equal(call("read", { path: "a.txt" }), undefined);
 	});
 	test("search allowed in subagent, commit gate still active", () => {
-		process.env.PI_OPEN_AGENTS_DEPTH = "1";
+		process.env.PI_SUBAGENT_CHILD = "1";
 		const { call } = createTestPi();
 		assert.equal(call("bash", { command: "rg foo" }), undefined);
 		assert.equal((call("bash", { command: "git commit -m x" }) as any).block, true);

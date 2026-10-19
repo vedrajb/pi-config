@@ -9,7 +9,7 @@ Pi extension enforcing two guardrails on tool calls.
 
 ## Environment variables
 
-- `PI_OPEN_AGENTS_DEPTH` - `> 0` marks a subagent process (search gate disabled).
+- `PI_SUBAGENT_CHILD` - `1` marks a pi-subagents background child process (search gate disabled).
 - `PI_GUARDRAILS_SEARCH` - `off` disables the search gate at startup.
 - `PI_CAVEMAN_COMMIT_SKILL` - skill path shown in the block message (default `~/.agents/skills/caveman-commit/SKILL.md`).
 
@@ -25,3 +25,8 @@ Listed in `install.config.json` as `./pi-guardrails`; run the repo installer, th
 ## Test
 
 `npm test`
+
+Background children load ambient extensions, including these guardrails. Foreground
+pi-subagents sessions run in the parent process and do not load ambient extensions;
+the process marker does not identify them. Use background delegation when the commit
+gate must be enforced in a child. Never set a process-wide marker for foreground work.

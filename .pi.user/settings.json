@@ -4,9 +4,15 @@
   "defaultModel": "claude-opus-5-5",
   "theme": "dark",
   "packages": [
-    "npm:pi-open-agents",
-    "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands"
+    "npm:pi-subagents",
+    "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands",
+    "..\\..\\workspace\\_ai\\pi-config\\pi-guardrails"
   ],
+  "subagents": {
+    "agentOverrides": {
+      "architect": { "disabled": true }
+    }
+  },
   "enabledModels": [
     "anthropic/claude-opus-5-5",
     "anthropic/claude-sonnet-5-5",
