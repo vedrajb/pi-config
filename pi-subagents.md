@@ -1,8 +1,9 @@
 # Pi agents with pi-subagents
 
-This guide keeps its original filename for existing links. Delegation now uses
+Delegation uses
 [pi-subagents](https://github.com/nicobailon/pi-subagents). The main Pi session
-implements normal tasks and orchestrates explicit complex workflows.
+coordinates normal tasks, delegates implementation to worker, and orchestrates
+explicit complex workflows.
 
 ## Install and migrate
 
@@ -52,16 +53,18 @@ not filesystem sandboxes.
 
 ## Parent workflow controls
 
-- `/none`: normal parent implementation; use scouts for repository searches.
+- `/none`: normal coordination; use scouts for searches and workers for implementation.
 - `/architect`: complex workflow; use plan, optional oracle, bounded worker work,
   and independent reviewer checks when useful.
 - `/plan`: read-only parent planning; delegate only to scout, oracle, or plan.
 
-These commands change parent instructions/tools, preserve the parent model, and
-persist with the session branch. Planning and architect workflows use high thinking;
-`/none` restores prior tools/thinking. See [command details](pi-custom-commands/README.md).
+These commands change parent instructions/tools and persist with the session branch.
+Planning and architect workflows use high thinking and keep the current model;
+`/none` restores prior tools and the configured default model/effort.
+See [command details](pi-custom-commands/README.md).
 
-Outside architect mode, another specialist requires an explicit user request.
+Outside architect mode, specialists beyond scout/worker require an explicit user
+request, except that a worker may use reviewer for independent review.
 Multiple scouts may investigate independent scopes. The existing search guardrail
 still requires the parent to delegate repository search. Prefer background delegation
 when child commit protection is required; see [guardrails](pi-guardrails/README.md).
@@ -75,12 +78,12 @@ by the installed version.
 
 Check these scenarios in a disposable test project:
 
-1. Normal discovery uses scout; a small implementation remains in the parent.
+1. Normal discovery uses scout; implementation goes to worker, including small changes.
 2. Independent investigations can run multiple scouts with different scopes.
 3. Explicit plan work can launch scout/oracle, cannot launch worker, and edits no files.
 4. Explicit worker work can edit and launch reviewer, but cannot launch other roles.
 5. Scout, reviewer, and oracle cannot launch children.
-6. `/plan` blocks parent edits and shells; `/none` restores tools/thinking. Resume,
+6. `/plan` blocks parent edits and shells; `/none` restores tools and default model/effort. Resume,
    reload, and tree navigation restore the selected workflow.
 7. `/subagents-fleet` displays active children and their status. Inspect usage/cost
    using the installed extension's observability tools.

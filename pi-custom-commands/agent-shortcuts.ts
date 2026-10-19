@@ -7,8 +7,8 @@ type WorkflowState = { mode: WorkflowMode; tools: string[]; thinking: ThinkingLe
 const entryType = "pi-parent-workflow";
 const planningTools = new Set(["read", "grep", "find", "ls", "subagent", "subagents_enable", "bg_wait", "subagent_supervisor", "contact_supervisor"]);
 const workflowPrompts: Record<WorkflowMode, string> = {
-	none: "Normal workflow: implement in the parent session. Use only scout subagents for investigation unless the user explicitly requests another specialist or the complex workflow. Delegate repository searches to scouts and reuse their findings.",
-	architect: "Complex / architect workflow: you are the parent orchestrator. Use plan for non-trivial planning, explicitly authorizing scout/oracle fanout as needed. Plan may use only scout and oracle. Implement directly or delegate bounded work to worker; worker may use only reviewer. Review substantial or risky changes. Choose the smallest useful workflow and avoid automatic review loops. Never launch an architect child.",
+	none: "Normal workflow: coordinate in the parent session and delegate all implementation to worker. Use scout for repository investigation and reuse its findings. Worker may use only reviewer for independent review. Other specialists require an explicit user request or the complex workflow. Do not implement directly in the parent.",
+	architect: "Complex / architect workflow: you are the parent orchestrator. Use plan for non-trivial planning, explicitly authorizing scout/oracle fanout as needed. Plan may use only scout and oracle. Delegate implementation to worker; worker may use only reviewer. Do not implement directly in the parent. Review substantial or risky changes. Choose the smallest useful workflow and avoid automatic review loops. Never launch an architect child.",
 	plan: "Plan mode: remain read-only. Produce an implementation-ready plan; do not implement or modify files. Delegate investigation/planning only to scout, oracle, or plan. Plan may use scout/oracle when justified. Do not launch worker or delegate fixes. Explicitly tell delegated agents to remain read-only, including shell commands.",
 };
 
@@ -24,12 +24,29 @@ export default function (pi: ExtensionAPI): void {
 	if (process.env.PI_SUBAGENT_CHILD === "1") return;
 	let state: WorkflowState | undefined;
 
-	const apply = () => {
+	const showWorkflow = (ctx: ExtensionContext) => {
+		if (ctx.hasUI) {
+			ctx.ui.setWidget(entryType, [`Workflow: ${state?.mode === "none" || !state ? "normal" : state.mode}`], { placement: "aboveEditor" });
+		}
+	};
+	const restoreDefaults = async (ctx: ExtensionContext, thinking: ThinkingLevel) => {
+		const settings = pi.getSettings();
+		if (settings.defaultProvider && settings.defaultModel) {
+			const model = ctx.modelRegistry.find(settings.defaultProvider, settings.defaultModel);
+			if (!model) throw new Error(`Configured default model not found: ${settings.defaultProvider}/${settings.defaultModel}`);
+			if (ctx.model?.provider !== model.provider || ctx.model?.id !== model.id) {
+				if (!await pi.setModel(model)) throw new Error(`Cannot select configured default model: ${model.provider}/${model.id}. Check provider authentication.`);
+			}
+		}
+		pi.setThinkingLevel(settings.defaultThinkingLevel ?? thinking);
+	};
+	const apply = async (ctx: ExtensionContext) => {
 		if (!state) return;
+		if (state.mode === "none") await restoreDefaults(ctx, state.thinking);
+		else pi.setThinkingLevel("high");
 		pi.setActiveTools(state.mode === "plan"
 			? pi.getAllTools().map((tool) => tool.name).filter((tool) => planningTools.has(tool))
 			: state.tools);
-		pi.setThinkingLevel(state.mode === "none" ? state.thinking : "high");
 	};
 	const restore = (_event: unknown, ctx: ExtensionContext) => {
 		const previous = state;
@@ -39,9 +56,12 @@ export default function (pi: ExtensionAPI): void {
 		}
 		if (!state && previous && previous.mode !== "none") {
 			pi.setActiveTools(previous.tools);
-			pi.setThinkingLevel(previous.thinking);
+			showWorkflow(ctx);
+			return restoreDefaults(ctx, previous.thinking);
 		}
-		apply();
+		const applied = apply(ctx);
+		showWorkflow(ctx);
+		return applied;
 	};
 	pi.on("session_start", restore);
 	pi.on("session_tree", restore);
@@ -83,12 +103,18 @@ export default function (pi: ExtensionAPI): void {
 			description: `Switch to the ${mode === "none" ? "normal" : mode} parent workflow`,
 			handler: async (_args, ctx) => {
 				await ctx.waitForIdle();
+				const previous = state;
 				if (!state || state.mode === "none") {
 					state = { mode, tools: pi.getActiveTools(), thinking: pi.getThinkingLevel() };
 				} else state = { ...state, mode };
-				apply();
+				try {
+					await apply(ctx);
+				} catch (error) {
+					state = previous;
+					throw error;
+				}
 				pi.appendEntry(entryType, state);
-				if (ctx.hasUI) ctx.ui.notify(`Parent workflow: ${mode === "none" ? "normal" : mode}`, "info");
+				showWorkflow(ctx);
 			},
 		});
 	}

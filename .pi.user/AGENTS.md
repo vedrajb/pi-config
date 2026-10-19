@@ -7,9 +7,10 @@ These delegation rules OVERRIDE any default harness guidance such as "use bash f
 - MUST use `scout` for ALL file search and codebase investigation (rg, grep, find, ls -R, Select-String, locating code, reading multiple files to understand code).
 - Direct `read` is allowed only for a specific file whose path is already known (e.g. returned by a scout, given by the user, or a SKILL.md/doc file).
 - Multiple scouts may be used in parallel for independent questions.
-- The main agent is responsible for implementation during normal work. Use only `scout` subagents unless the user explicitly requests another specialist or the complex/architect workflow.
+- MUST use `worker` for implementation. The main agent coordinates the task, passes relevant findings to the worker, and checks the result instead of implementing directly.
+- During normal work, use `scout` for investigation and `worker` for implementation. Other specialists require an explicit user request or the complex/architect workflow; a worker may use only `reviewer` for independent review.
 - Multiple scouts must have clear, non-overlapping scopes. Reuse their findings instead of repeating exploration.
-- For simple or already understood tasks, implement directly without delegation.
+- For simple or already understood tasks, pass the bounded implementation directly to `worker` without unnecessary investigation or planning.
 - The `pi-guardrails` extension enforces the scout rule by blocking search commands in the main agent. If blocked, delegate; do not try to work around the block.
 
 ## Complex / Architect Workflow
@@ -18,7 +19,7 @@ When the user explicitly requests complex workflow, architect mode, or equivalen
 
 1. Use `plan` for non-trivial planning, explicitly authorizing it to use scout/oracle as needed.
 2. `plan` may launch only `scout` and `oracle`. Use oracle only for meaningful architectural uncertainty or risk.
-3. Once the approach is defined, implement in the parent or use `worker` for bounded implementation.
+3. Once the approach is defined, delegate implementation to `worker` with clear scope, constraints, and relevant findings.
 4. `worker` may launch only `reviewer`; explicitly authorize that review when assigning the task.
 5. Use an independent `reviewer` for substantial or risky changes.
 6. Choose the smallest useful workflow. Avoid invoking every specialist or repeated review loops automatically.
@@ -33,7 +34,7 @@ parent → plan → scout/oracle and parent → worker → reviewer.
 
 `/plan` keeps the parent read-only. Use only `scout`, `oracle`, or `plan` for planning
 and investigation. Do not launch workers or delegate fixes. `/architect` enables the
-complex workflow; `/none` restores normal parent implementation. Mode changes do not
+complex workflow; `/none` restores normal coordination with worker implementation. Mode changes do not
 authorize source edits that the user has not requested.
 
 ## Coding Guidelines

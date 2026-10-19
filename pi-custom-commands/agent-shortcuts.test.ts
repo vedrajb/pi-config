@@ -2,18 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import registerAgentShortcuts from "./agent-shortcuts.ts";
 
-function createTestPi(entries: any[] = []) {
+function createTestPi(entries: any[] = [], hasUI = false) {
 	const shortcuts = new Map<string, { handler: (ctx: any) => Promise<void> }>();
 	const commands = new Map<string, { handler: (...args: any[]) => Promise<void> }>();
 	const handlers = new Map<string, Function>();
 	const sentMessages: Array<[string, { expandPromptTemplates: boolean }]> = [];
+	const widgets = new Map<string, { content: string[]; placement: string }>();
+	const notifications: string[] = [];
 	const baseline = ["read", "bash", "powershell", "edit", "write", "subagent", "custom_tool"];
 	let tools = [...baseline];
 	let thinking = "medium";
+	let model = { provider: "test", id: "default" };
+	const settings = { defaultProvider: "test", defaultModel: "default", defaultThinkingLevel: "medium" };
+	const modelSelection = { available: true, authenticated: true };
 	const ctx = {
+		get model() { return model; },
+		modelRegistry: { find: (provider: string, id: string) => modelSelection.available ? { provider, id } : undefined },
 		isIdle: () => true,
 		waitForIdle: async () => {},
-		hasUI: false,
+		hasUI,
+		ui: {
+			setWidget: (key: string, content: string[], options: { placement: string }) => widgets.set(key, { content, placement: options.placement }),
+			notify: (message: string) => notifications.push(message),
+		},
 		sessionManager: { getBranch: () => entries },
 	};
 	const pi = {
@@ -22,6 +33,12 @@ function createTestPi(entries: any[] = []) {
 		getAllTools: () => [...baseline, "grep", "find", "ls", "bg_wait"].map((name) => ({ name })),
 		setActiveTools: (names: string[]) => { tools = [...names]; },
 		getThinkingLevel: () => thinking,
+		getSettings: () => ({ ...settings }),
+		setModel: async (value: typeof model) => {
+			if (!modelSelection.authenticated) return false;
+			model = value;
+			return true;
+		},
 		setThinkingLevel: (value: string) => { thinking = value; },
 		appendEntry: (customType: string, data: unknown) => entries.push({ type: "custom", customType, data }),
 		registerShortcut(key: string, shortcut: { handler: (ctx: any) => Promise<void> }) {
@@ -36,9 +53,89 @@ function createTestPi(entries: any[] = []) {
 	} as any;
 
 	registerAgentShortcuts(pi);
-	handlers.get("session_start")?.({}, ctx);
-	return { shortcuts, commands, sentMessages, handlers, ctx, entries, baseline, tools: () => tools, thinking: () => thinking };
+	const ready = handlers.get("session_start")?.({}, ctx);
+	return { shortcuts, commands, sentMessages, widgets, notifications, handlers, ctx, entries, baseline, ready, settings, modelSelection, model: () => model, selectModel: pi.setModel, setThinkingLevel: pi.setThinkingLevel, tools: () => tools, thinking: () => thinking };
 }
+
+test("returning to normal restores configured model and effort instead of captured session values", async () => {
+	const pi = createTestPi();
+	await pi.selectModel({ provider: "other", id: "planning" });
+	pi.setThinkingLevel("max");
+	await pi.commands.get("plan")!.handler("", pi.ctx);
+	await pi.commands.get("none")!.handler("", pi.ctx);
+	assert.deepEqual(pi.model(), { provider: "test", id: "default" });
+	assert.equal(pi.thinking(), "medium");
+	assert.deepEqual(pi.tools(), pi.baseline);
+});
+
+test("normal uses current defaults after a resumed plan or an architect workflow", async () => {
+	const pi = createTestPi([{ type: "custom", customType: "pi-parent-workflow", data: { mode: "plan", tools: ["read", "write"], thinking: "high" } }]);
+	await pi.ready;
+	await pi.commands.get("architect")!.handler("", pi.ctx);
+	pi.settings.defaultProvider = "updated";
+	pi.settings.defaultModel = "new-default";
+	pi.settings.defaultThinkingLevel = "low";
+	await pi.commands.get("none")!.handler("", pi.ctx);
+	assert.deepEqual(pi.model(), { provider: "updated", id: "new-default" });
+	assert.equal(pi.thinking(), "low");
+});
+
+test("failed default model selection leaves plan active without recording a successful switch", async () => {
+	for (const failure of ["missing", "unauthenticated"]) {
+		const pi = createTestPi([], true);
+		await pi.selectModel({ provider: "other", id: "planning" });
+		await pi.commands.get("plan")!.handler("", pi.ctx);
+		pi.modelSelection.available = failure !== "missing";
+		pi.modelSelection.authenticated = failure !== "unauthenticated";
+		await assert.rejects(pi.commands.get("none")!.handler("", pi.ctx), /default model/);
+		assert.equal(pi.entries.at(-1).data.mode, "plan");
+		assert.deepEqual(pi.widgets.get("pi-parent-workflow")?.content, ["Workflow: plan"]);
+		assert.equal(pi.tools().includes("write"), false);
+		assert.equal(pi.thinking(), "high");
+	}
+});
+
+test("resuming normal and navigating back to normal restore configured defaults", async () => {
+	const pi = createTestPi([{ type: "custom", customType: "pi-parent-workflow", data: { mode: "none", tools: ["read", "write"], thinking: "max" } }]);
+	await pi.ready;
+	assert.equal(pi.thinking(), "medium");
+	await pi.commands.get("plan")!.handler("", pi.ctx);
+	await pi.selectModel({ provider: "other", id: "planning" });
+	pi.entries.length = 0;
+	await pi.handlers.get("session_tree")!({}, pi.ctx);
+	assert.deepEqual(pi.model(), { provider: "test", id: "default" });
+	assert.equal(pi.thinking(), "medium");
+});
+
+test("workflow widget stays above the prompt and follows mode changes", async () => {
+	const pi = createTestPi([], true);
+	assert.deepEqual(pi.widgets.get("pi-parent-workflow"), { content: ["Workflow: normal"], placement: "aboveEditor" });
+	for (const mode of ["plan", "architect", "none"]) {
+		await pi.commands.get(mode)!.handler("", pi.ctx);
+		assert.deepEqual(pi.widgets.get("pi-parent-workflow"), { content: [`Workflow: ${mode === "none" ? "normal" : mode}`], placement: "aboveEditor" });
+	}
+	assert.equal(pi.widgets.size, 1);
+	assert.deepEqual(pi.notifications, []);
+});
+
+test("workflow widget restores on resume, reload, and tree navigation", async () => {
+	const first = createTestPi([], true);
+	await first.commands.get("plan")!.handler("", first.ctx);
+	const pi = createTestPi(first.entries, true);
+	assert.deepEqual(pi.widgets.get("pi-parent-workflow")?.content, ["Workflow: plan"]);
+	pi.widgets.clear();
+	pi.handlers.get("session_start")!({}, pi.ctx);
+	assert.deepEqual(pi.widgets.get("pi-parent-workflow")?.content, ["Workflow: plan"]);
+	pi.entries.length = 0;
+	pi.handlers.get("session_tree")!({}, pi.ctx);
+	assert.deepEqual(pi.widgets.get("pi-parent-workflow")?.content, ["Workflow: normal"]);
+});
+
+test("non-UI sessions do not render the workflow widget", async () => {
+	const pi = createTestPi();
+	await pi.commands.get("plan")!.handler("", pi.ctx);
+	assert.equal(pi.widgets.size, 0);
+});
 
 test("shift+tab shortcut is not registered", () => {
 	const { shortcuts } = createTestPi();
