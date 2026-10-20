@@ -7,7 +7,7 @@ by `pi-subagents`; these commands do not switch primary agents or start children
 | --- | --- |
 | `/plan` | Read-only parent tools, planning instructions, high thinking. Delegate only to scout, plan, or oracle. |
 | `/architect` | Complex orchestration instructions, normal tools, high thinking. |
-| `/none` | Normal coordination with worker implementation; restore prior tools and configured default model/effort. |
+| `/normal` | Parent implementation with scout-only delegation; restore prior tools and configured default model/effort. |
 
 The current workflow is always shown above the input as `Workflow: normal`,
 `Workflow: plan`, or `Workflow: architect`. The label updates when switching modes
@@ -18,11 +18,11 @@ and restores when reloading, resuming, or navigating the session tree.
 Wait for the current turn to finish before cycling. After changing this extension,
 run `/reload` or restart Pi to register the shortcut; reinstalling is unnecessary.
 
-Normal work uses scouts for discovery and workers for implementation. The parent
-coordinates and checks results. Other specialists require an explicit user request
-or the complex workflow; a worker may use reviewer for independent review.
+Normal work delegates only repository investigation to scouts and implements in
+the parent. Switch to plan or architect before delegating to other specialists.
 Architect mode uses plan → scout/oracle and worker → reviewer when useful.
-Delegation restrictions are instructions; there is no parent agent allowlist extension.
+The guardrails extension blocks non-scout delegation and executable workflow scripts
+in normal mode. Plan and architect keep their specialist workflows.
 
 Workflow state follows the session branch and survives resume, reload, and tree
 navigation. Fresh sessions start in normal mode. Returning to normal selects the
@@ -37,6 +37,14 @@ Plan mode disables shell, edit, write, and other unrecognized parent tools, and
 blocks their invocation if another extension reactivates them. Child planning
 roles must obey their no-edit instructions, including when using inspection shells.
 Mode changes do not override unrelated guardrails or authorize edits by themselves.
+
+When the user explicitly approves implementing a discussed plan, the agent calls
+`start_implementation` to leave plan mode automatically, restore the configured
+default model/effort, and implement directly in the parent. Approval is interpreted by the agent
+in context, rather than by matching words in every message. Questions, quotations,
+and permission to keep planning do not authorize the handoff. Architect mode is
+selected only by the user; implementation approval leaves an active architect
+workflow unchanged.
 
 To install the package globally from the workspace root:
 

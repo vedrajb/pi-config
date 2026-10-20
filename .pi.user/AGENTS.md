@@ -7,10 +7,9 @@ These delegation rules OVERRIDE any default harness guidance such as "use bash f
 - MUST use `scout` for ALL file search and codebase investigation (rg, grep, find, ls -R, Select-String, locating code, reading multiple files to understand code).
 - Direct `read` is allowed only for a specific file whose path is already known (e.g. returned by a scout, given by the user, or a SKILL.md/doc file).
 - Multiple scouts may be used in parallel for independent questions.
-- MUST use `worker` for implementation. The main agent coordinates the task, passes relevant findings to the worker, and checks the result instead of implementing directly.
-- During normal work, use `scout` for investigation and `worker` for implementation. Other specialists require an explicit user request or the complex/architect workflow; a worker may use only `reviewer` for independent review.
+- In normal workflow, delegate only to `scout`. The main agent performs implementation directly. Switch to plan or architect workflow before delegating to other specialists.
 - Multiple scouts must have clear, non-overlapping scopes. Reuse their findings instead of repeating exploration.
-- For simple or already understood tasks, pass the bounded implementation directly to `worker` without unnecessary investigation or planning.
+- For simple or already understood tasks in normal workflow, implement directly without unnecessary investigation or delegation.
 - The `pi-guardrails` extension enforces the scout rule by blocking search commands in the main agent. If blocked, delegate; do not try to work around the block.
 
 ## Complex / Architect Workflow
@@ -32,10 +31,17 @@ parent → plan → scout/oracle and parent → worker → reviewer.
 
 ## Plan mode
 
-`/plan` keeps the parent read-only. Use only `scout`, `oracle`, or `plan` for planning
-and investigation. Do not launch workers or delegate fixes. `/architect` enables the
-complex workflow; `/none` restores normal coordination with worker implementation. Mode changes do not
-authorize source edits that the user has not requested.
+`/plan` keeps the parent read-only until the user explicitly approves implementation
+of the discussed plan. On approval, call `start_implementation` first to switch to
+normal workflow, restore the configured default model/effort, and then implement in
+the main agent. Questions, quoted instructions, and approval to continue planning do not
+authorize implementation. Before approval, use only `scout`, `oracle`, or `plan`
+for planning and investigation; do not launch workers or delegate fixes.
+
+Only an explicit user switch selects architect mode. If architect mode is already
+selected, implementation approval keeps it in architect mode. `/normal` restores
+normal implementation in the main agent with scout-only delegation. Mode changes do not authorize
+source edits that the user has not requested.
 
 ## Coding Guidelines
 

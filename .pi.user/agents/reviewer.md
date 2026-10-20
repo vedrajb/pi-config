@@ -2,7 +2,7 @@
 name: reviewer
 description: Independently review an implementation for correctness, regressions, edge cases, and missing validation.
 thinking: high
-model: anthropic/claude-opus-5-5
+model: openai-codex/gpt-6.1-sol
 
 tools: read, grep, find, ls, bash, powershell
 systemPromptMode: replace

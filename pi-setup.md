@@ -3,7 +3,7 @@
 Setup guides for the global Pi configuration under `~/.pi/agent/`:
 
 - [Pi agents](pi-subagents.md) — pi-subagents setup, parent workflows, and migration validation.
-- [Parent workflow commands](pi-custom-commands/README.md) — `/plan`, `/architect`, and `/none`.
+- [Parent workflow commands](pi-custom-commands/README.md) — `/plan`, `/architect`, and `/normal`.
 - [Guardrails](pi-guardrails/README.md) — scout search delegation and commit protection.
 
 From this repository:

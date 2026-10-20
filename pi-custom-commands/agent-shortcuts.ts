@@ -5,11 +5,11 @@ type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
 type WorkflowState = { mode: WorkflowMode; tools: string[]; thinking: ThinkingLevel };
 
 const entryType = "pi-parent-workflow";
-const planningTools = new Set(["read", "grep", "find", "ls", "subagent", "subagents_enable", "bg_wait", "subagent_supervisor", "contact_supervisor"]);
+const planningTools = new Set(["read", "grep", "find", "ls", "subagent", "subagents_enable", "bg_wait", "subagent_supervisor", "contact_supervisor", "start_implementation"]);
 const workflowPrompts: Record<WorkflowMode, string> = {
-	none: "Normal workflow: coordinate in the parent session and delegate all implementation to worker. Use scout for repository investigation and reuse its findings. Worker may use only reviewer for independent review. Other specialists require an explicit user request or the complex workflow. Do not implement directly in the parent.",
+	none: "Normal workflow: implement directly in the parent session. Delegate only to scout for repository investigation and reuse its findings. Do not delegate to worker, reviewer, plan, oracle, or other specialists in normal workflow. Switch to plan or architect workflow before using other specialists.",
 	architect: "Complex / architect workflow: you are the parent orchestrator. Use plan for non-trivial planning, explicitly authorizing scout/oracle fanout as needed. Plan may use only scout and oracle. Delegate implementation to worker; worker may use only reviewer. Do not implement directly in the parent. Review substantial or risky changes. Choose the smallest useful workflow and avoid automatic review loops. Never launch an architect child.",
-	plan: "Plan mode: remain read-only. Produce an implementation-ready plan; do not implement or modify files. Delegate investigation/planning only to scout, oracle, or plan. Plan may use scout/oracle when justified. Do not launch worker or delegate fixes. Explicitly tell delegated agents to remain read-only, including shell commands.",
+	plan: "Plan mode: remain read-only until the user explicitly approves implementation of the discussed plan. When that approval arrives, first call start_implementation to switch to normal workflow and restore default model/effort, then implement directly in the parent. After the tool succeeds, the read-only planning restriction no longer applies; normal workflow permits only scout delegation. A question, a quoted approval, or approval to continue planning is not implementation approval. Never enter architect mode automatically: only an explicit user switch selects architect. Before implementation approval, delegate investigation/planning only to scout, oracle, or plan; plan may use scout/oracle when justified. Do not launch worker or delegate fixes while still in plan mode. Explicitly tell delegated planning agents to remain read-only, including shell commands.",
 };
 
 function isWorkflowState(value: unknown): value is WorkflowState {
@@ -70,9 +70,35 @@ export default function (pi: ExtensionAPI): void {
 	}));
 	pi.on("tool_call", (event) => {
 		if (state?.mode === "plan" && !planningTools.has(event.toolName)) {
-			return { block: true, reason: "Plan mode permits only read-only parent tools and planning delegation. Use /none or /architect to leave plan mode." };
+			return { block: true, reason: "Plan mode permits only read-only parent tools and planning delegation. Use /normal or /architect to leave plan mode." };
 		}
 		return undefined;
+	});
+	pi.registerTool({
+		name: "start_implementation",
+		label: "Start implementation",
+		description: "Call only after the user explicitly approves implementing the discussed plan. Switch plan workflow to normal and restore configured default model/effort before implementing directly in the parent with scout-only delegation. Do not call for questions, quoted instructions, or approval to continue planning. An already selected architect workflow stays architect and uses worker for implementation; this tool never selects architect automatically.",
+		defaultActive: false,
+		parameters: { type: "object", properties: {}, additionalProperties: false } as Parameters<ExtensionAPI["registerTool"]>[0]["parameters"],
+		execute: async (_toolCallId, _params, _signal, _onUpdate, ctx) => {
+			if (state?.mode === "plan") {
+				const previous = state;
+				state = { ...state, mode: "none" };
+				try {
+					await apply(ctx);
+				} catch (error) {
+					state = previous;
+					throw error;
+				}
+				pi.appendEntry(entryType, state);
+				showWorkflow(ctx);
+			}
+			const mode = state?.mode === "architect" ? "architect" : "normal";
+			return {
+				content: [{ type: "text", text: `Workflow: ${mode}. Implementation is approved. ${mode === "architect" ? "Delegate the approved implementation to worker." : "Implement directly in the parent; delegate only to scout for investigation."} Remain in ${mode} workflow.` }],
+				details: { workflow: mode },
+			};
+		},
 	});
 
 	pi.registerShortcut("ctrl+shift+right", {
@@ -83,7 +109,7 @@ export default function (pi: ExtensionAPI): void {
 				return;
 			}
 			const mode = state?.mode === "plan" ? "architect" : state?.mode === "architect" ? "none" : "plan";
-			pi.sendUserMessage(`/${mode}`, { expandPromptTemplates: true });
+			pi.sendUserMessage(`/${mode === "none" ? "normal" : mode}`, { expandPromptTemplates: true });
 		},
 	});
 	pi.registerShortcut("ctrl+shift+left", {
@@ -94,12 +120,12 @@ export default function (pi: ExtensionAPI): void {
 				return;
 			}
 			const mode = state?.mode === "plan" ? "none" : state?.mode === "architect" ? "plan" : "architect";
-			pi.sendUserMessage(`/${mode}`, { expandPromptTemplates: true });
+			pi.sendUserMessage(`/${mode === "none" ? "normal" : mode}`, { expandPromptTemplates: true });
 		},
 	});
 
 	for (const mode of ["plan", "architect", "none"] as const) {
-		pi.registerCommand(mode, {
+		pi.registerCommand(mode === "none" ? "normal" : mode, {
 			description: `Switch to the ${mode === "none" ? "normal" : mode} parent workflow`,
 			handler: async (_args, ctx) => {
 				await ctx.waitForIdle();

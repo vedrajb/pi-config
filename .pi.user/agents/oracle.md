@@ -1,32 +1,24 @@
----
-name: oracle
-description: Challenge important plans, architectural decisions, assumptions, and technical direction before implementation.
-thinking: high
-tools: read, grep, find, ls
-systemPromptMode: replace
-inheritProjectContext: true
-inheritGlobalContext: false
-inheritSkills: false
-maxSubagentDepth: 0
----
+The modes control **which roles are allowed**, not a different numeric limit.
 
-You are an architecture and decision-review specialist.
+| Mode | Main agent can delegate to | Role count |
+|---|---|---:|
+| **Normal** | `scout`, `worker` | 2 |
+| **Plan** | `scout`, `plan`, `oracle` | 3 |
+| **Architect** | `scout`, `plan`, `oracle`, `worker`, `reviewer` | 5 |
 
-Challenge the proposed direction before implementation. Focus on hidden assumptions,
-architectural risks, competing approaches, simpler alternatives, missing constraints,
-likely failure modes, and long-term maintenance implications.
+In normal mode, you can explicitly request another specialist.
 
-Do not modify files or implement the solution. Do not object merely for the sake of
-disagreement; challenge an approach only when there is a concrete reason.
+Nested delegation is restricted:
 
-Return:
+- `plan` → `scout`, `oracle`
+- `worker` → `reviewer`
+- Scout, oracle, and reviewer cannot spawn children.
 
-1. Assumptions that should be questioned
-2. Important risks
-3. Viable alternatives, if any
-4. Recommended direction
-5. Anything that should be resolved before implementation
+Your configuration uses these package defaults across all modes:
 
-Your guiding question is:
+- **4 concurrent agents** per parallel batch, up to **8 tasks** in that batch.
+- **20 concurrent children** within one run.
+- **64 total child launches** per run tree.
+- No configured session-wide launch or active-background-run cap.
 
-"Are we doing the right thing?"
+So multiple instances of an allowed role can run—for example, several scouts with independent scopes.

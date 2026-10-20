@@ -50,3 +50,5 @@ Keep the response concise and actionable.
 Your guiding question is:
 
 "What does the parent agent need to know before proceeding?"
+
+Keep response concise.

@@ -15,7 +15,7 @@ afterEach(() => {
 	Object.assign(process.env, saved);
 });
 
-function createTestPi() {
+function createTestPi(entries: any[] = []) {
 	const handlers = new Map<string, Function>();
 	const commands = new Map<string, { handler: (a: string, c: any) => Promise<void> }>();
 	const pi = {
@@ -27,7 +27,7 @@ function createTestPi() {
 		},
 	} as any;
 	guardrails(pi);
-	const call = (toolName: string, input: any) => handlers.get("tool_call")!({ toolName, input });
+	const call = (toolName: string, input: any) => handlers.get("tool_call")!({ toolName, input }, { sessionManager: { getBranch: () => entries } });
 	return { handlers, commands, call };
 }
 
@@ -73,6 +73,51 @@ describe("helpers", () => {
 		for (const c of ["git status | grep x", "ls", "ls -la", "dir", "Get-ChildItem", "npm test", "git log", "echo hi"])
 			assert.equal(findSearchCommand(c), undefined, c);
 	});
+});
+
+test("normal workflow permits only scout launches, including legacy batches", () => {
+	const { call } = createTestPi();
+	for (const input of [
+		{ agent: "scout", task: "Inspect implementation" },
+		{ agent: "scout", task: "Inspect implementation", count: 3 },
+		{ tasks: [{ agent: "scout", task: "Code" }, { agent: "scout", task: "Tests" }] },
+		{ chain: [{ agent: "scout", task: "Code" }, { agent: "scout", task: "Config" }] },
+	]) assert.equal(call("subagent", input), undefined);
+	for (const input of [
+		{ agent: "worker", task: "Implement" }, { agent: "plan" }, { agent: "oracle" }, { agent: "reviewer" },
+		{ tasks: [{ agent: "scout" }, { agent: "worker" }] },
+		{ chain: [{ agent: "scout" }, { agent: "reviewer" }] },
+		{ workflow: true }, { workflow: "review" }, { action: "resume", runId: "existing" }, { action: "steer", runId: "existing" },
+		{ tasks: [] }, { agent: "scout", workflow: "hidden-script" },
+	]) assert.equal(call("subagent", input)?.block, true, JSON.stringify(input));
+	assert.equal(call("write", { path: "source.ts", content: "implementation" }), undefined);
+});
+
+test("normal delegation restriction follows workflow state on resume and branch changes", () => {
+	const entries: any[] = [];
+	const { call } = createTestPi(entries);
+	for (const mode of ["plan", "architect", "none", "normal", "architect", "none"]) {
+		entries.push({ type: "custom", customType: "pi-parent-workflow", data: { mode } });
+		assert.equal(Boolean(call("subagent", { agent: "worker", task: "Implement" })?.block), mode === "none" || mode === "normal");
+	}
+	entries.length = 0;
+	assert.equal(call("subagent", { agent: "worker" })?.block, true);
+});
+
+test("normal workflow retains fleet inspection and stop controls", () => {
+	const { call } = createTestPi();
+	for (const action of ["list", "get", "status", "doctor", "guide", "children.list", "stop", "interrupt", "dismiss"]) {
+		assert.equal(call("subagent", { action, agent: "worker", runId: "existing" }), undefined);
+	}
+});
+
+test("child delegation rules and search toggle do not bypass the main normal workflow gate", async () => {
+	const { call, commands } = createTestPi();
+	await commands.get("guardrails")!.handler("search off", { hasUI: false });
+	assert.equal(call("subagent", { agent: "worker" })?.block, true);
+	process.env.PI_SUBAGENT_CHILD = "1";
+	assert.equal(call("subagent", { agent: "reviewer" }), undefined);
+	assert.equal(call("bash", { command: "git commit -m x" })?.block, true);
 });
 
 describe("factory", () => {

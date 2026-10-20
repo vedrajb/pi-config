@@ -82,6 +82,32 @@ const SHELL_TOOLS = new Set(["bash", "powershell"]);
 const SKILL_IN_COMMAND = new RegExp("caveman-commit[\\\\/]skill\\.md", "i");
 const SEARCH_TOOLS = new Set(["grep", "find", "ls"]);
 
+export function isNormalWorkflow(ctx: any): boolean {
+	let mode = "none";
+	for (const entry of ctx?.sessionManager?.getBranch?.() ?? []) {
+		if (entry.type === "custom" && entry.customType === "pi-parent-workflow"
+			&& ["none", "normal", "plan", "architect"].includes(entry.data?.mode)) mode = entry.data.mode;
+	}
+	return mode === "none" || mode === "normal";
+}
+
+const NORMAL_SUBAGENT_ACTIONS = new Set(["list", "get", "models", "guide", "status", "doctor", "children.list", "stop", "interrupt", "dismiss", "inspector.open", "inspector.status", "inspector.close"]);
+
+export function isScoutDelegation(input: any): boolean {
+	if (!input || typeof input !== "object" || input.workflow !== undefined) return false;
+	if (input.action !== undefined) return NORMAL_SUBAGENT_ACTIONS.has(input.action);
+	const launches = [];
+	if (input.agent !== undefined) launches.push(input);
+	for (const key of ["tasks", "chain"]) {
+		if (input[key] !== undefined) {
+			if (!Array.isArray(input[key]) || !input[key].length) return false;
+			launches.push(...input[key]);
+		}
+	}
+	return launches.length > 0 && launches.every((entry) => entry?.agent === "scout"
+		&& entry.workflow === undefined && entry.tasks === undefined && entry.chain === undefined);
+}
+
 export default function (pi: ExtensionAPI): void {
 	const env = process.env;
 	let skillRead = false;
@@ -93,10 +119,16 @@ export default function (pi: ExtensionAPI): void {
 		skillRead = false;
 	});
 
-	pi.on("tool_call", (event: any) => {
+	pi.on("tool_call", (event: any, ctx: any) => {
 		const tool = String(event.toolName ?? "").toLowerCase();
 		const input = event.input ?? {};
 		const command: string = typeof input.command === "string" ? input.command : "";
+		if (!isSubagentProcess(process.env) && tool === "subagent" && isNormalWorkflow(ctx) && !isScoutDelegation(input)) {
+			return {
+				block: true,
+				reason: 'Normal workflow permits only scout delegation. Implement directly in the parent and use direct scout calls for investigation. Switch to /plan or /architect before using other specialists, workflow scripts, or resuming/steering existing runs.',
+			};
+		}
 
 		// Track caveman-commit SKILL.md reads (read tool or e.g. `cat` in a shell).
 		if (tool === "read") {

@@ -1,7 +1,7 @@
 ---
 name: worker
 description: Implement a well-defined software change, validate it, and report the result.
-thinking: high
+thinking: medium
 model: anthropic/claude-sonnet-5-5
 
 systemPromptMode: replace
@@ -56,3 +56,5 @@ Return:
 Your guiding question is:
 
 "How do I implement the requested solution correctly with the smallest appropriate change?"
+
+Keep response concise.
