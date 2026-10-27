@@ -2,7 +2,6 @@
 name: plan
 description: Analyze a non-trivial software task and produce an implementation-ready plan.
 thinking: high
-model: anthropic/claude-opus-5-5
 
 tools: read, grep, find, ls, bash, powershell
 systemPromptMode: replace

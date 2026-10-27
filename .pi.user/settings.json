@@ -1,25 +1,36 @@
 {
+  "lastChangelogVersion": "1.4.0",
   "defaultThinkingLevel": "medium",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-5-5",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-6-luna",
   "theme": "dark",
   "packages": [
-    "npm:pi-subagents",
     "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands",
-    "..\\..\\workspace\\_ai\\pi-config\\pi-guardrails"
+    "..\\..\\workspace\\_ai\\pi-config\\pi-guardrails",
+    "npm:pi-subagents"
   ],
-  "subagents": {
-    "agentOverrides": {
-      "architect": { "disabled": true }
-    }
-  },
   "enabledModels": [
     "anthropic/claude-opus-5-5",
     "anthropic/claude-sonnet-5-5",
+    "anthropic/claude-haiku-5-5",
     "anthropic/claude-fable-5-1",
-    "anthropic/claude-haiku-4-5",
-    "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6-sol",
-    "openai-codex/gpt-6-luna"
-  ]
+    "openai/gpt-6.1-sol",
+    "openai/gpt-6-luna",
+    "openai/gpt-6-astra",
+    "openai/gpt-6.1-terra"
+  ],
+  "warnings": {
+    "anthropicExtraUsage": false
+  },
+  "terminal": {
+    "showTerminalProgress": false
+  },
+  "subagents": {
+    "agentOverrides": {
+      "architect": {
+        "disabled": true
+      }
+    }
+  },
+  "deviceId": "f784f916-3b0e-4e97-9ffd-0438cf14e15e"
 }

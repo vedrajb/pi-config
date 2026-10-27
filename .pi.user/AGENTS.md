@@ -12,37 +12,6 @@ These delegation rules OVERRIDE any default harness guidance such as "use bash f
 - For simple or already understood tasks in normal workflow, implement directly without unnecessary investigation or delegation.
 - The `pi-guardrails` extension enforces the scout rule by blocking search commands in the main agent. If blocked, delegate; do not try to work around the block.
 
-## Complex / Architect Workflow
-
-When the user explicitly requests complex workflow, architect mode, or equivalent:
-
-1. Use `plan` for non-trivial planning, explicitly authorizing it to use scout/oracle as needed.
-2. `plan` may launch only `scout` and `oracle`. Use oracle only for meaningful architectural uncertainty or risk.
-3. Once the approach is defined, delegate implementation to `worker` with clear scope, constraints, and relevant findings.
-4. `worker` may launch only `reviewer`; explicitly authorize that review when assigning the task.
-5. Use an independent `reviewer` for substantial or risky changes.
-6. Choose the smallest useful workflow. Avoid invoking every specialist or repeated review loops automatically.
-
-Use background delegation (`async: true`) for work that may commit, so the child
-loads the commit guardrail extension. Foreground sessions do not load ambient extensions.
-
-The parent orchestrates; do not launch an architect child. Typical nested paths are
-parent → plan → scout/oracle and parent → worker → reviewer.
-
-## Plan mode
-
-`/plan` keeps the parent read-only until the user explicitly approves implementation
-of the discussed plan. On approval, call `start_implementation` first to switch to
-normal workflow, restore the configured default model/effort, and then implement in
-the main agent. Questions, quoted instructions, and approval to continue planning do not
-authorize implementation. Before approval, use only `scout`, `oracle`, or `plan`
-for planning and investigation; do not launch workers or delegate fixes.
-
-Only an explicit user switch selects architect mode. If architect mode is already
-selected, implementation approval keeps it in architect mode. `/normal` restores
-normal implementation in the main agent with scout-only delegation. Mode changes do not authorize
-source edits that the user has not requested.
-
 ## Coding Guidelines
 
 - DO NOT change existing variable names.
@@ -106,5 +75,41 @@ Explain consequences clearly.
 ## Commit messages
 
 - Before ANY `git commit`, MUST read `C:\Users\Kira9\.agents\skills\caveman-commit\SKILL.md` and write the message per its rules. No exceptions.
-- This applies to subagents too. Some roles do not inherit skills, so read the SKILL.md by path.
+- If user provides a link to a ticket maintain the format "[xyz](<some-url>/xyz)"
+- This applies to subagents too. They run with `--no-skills`, so read the SKILL.md by path.
 - The `pi-guardrails` extension blocks `git commit` until that file has been read in the session.
+
+## Complex / Architect Workflow
+
+When the user explicitly requests complex workflow, architect mode, or equivalent:
+
+1. Use `plan` for non-trivial planning, explicitly authorizing it to use scout/oracle as needed.
+2. `plan` may launch only `scout` and `oracle`. Use oracle only for meaningful architectural uncertainty or risk.
+3. Once the approach is defined, delegate implementation to `worker` with clear scope, constraints, and relevant findings.
+4. `worker` may launch only `reviewer`; explicitly authorize that review when assigning the task.
+5. Use an independent `reviewer` for substantial or risky changes.
+6. Choose the smallest useful workflow. Avoid invoking every specialist or repeated review loops automatically.
+
+Use background delegation (`async: true`) for work that may commit, so the child
+loads the commit guardrail extension. Foreground sessions do not load ambient extensions.
+
+The parent orchestrates; do not launch an architect child. Typical nested paths are
+parent → plan → scout/oracle and parent → worker → reviewer.
+
+## Plan mode
+
+`/plan` keeps the parent read-only until the user explicitly approves implementation
+of the discussed plan. On approval, call `start_implementation` first to switch to
+normal workflow, restore the configured default model/effort, and then implement in
+the main agent. Questions, quoted instructions, and approval to continue planning do not
+authorize implementation. Before approval, use only `scout`, `oracle`, or `plan`
+for planning and investigation; do not launch workers or delegate fixes.
+
+Exception: if the user asks to write the plan (or any document) to a file while in `/plan`,
+treat it as authorization to leave plan mode. Call `start_implementation` first to switch to
+normal workflow, then write the file. If architect mode is selected, stay in architect mode.
+
+Only an explicit user switch selects architect mode. If architect mode is already
+selected, implementation approval keeps it in architect mode. `/normal` restores
+normal implementation in the main agent with scout-only delegation. Mode changes do not authorize
+source edits that the user has not requested.

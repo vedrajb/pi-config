@@ -2,7 +2,6 @@
 name: oracle
 description: Challenge important plans, architectural decisions, assumptions, and technical direction before implementation.
 thinking: high
-model: anthropic/claude-opus-5-5
 
 tools: read, grep, find, ls
 systemPromptMode: replace
