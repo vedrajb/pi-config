@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "1.4.0",
   "defaultThinkingLevel": "medium",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-6-luna",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-5-5",
   "theme": "dark",
   "packages": [
     "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands",

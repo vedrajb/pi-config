@@ -81,11 +81,13 @@ export function applyProfileSettings(settings, name, resolved, definitions) {
 		if (role === "parent") continue;
 		updated[role] = { ...object(overrides[role] ?? {}, `agentOverrides.${role}`), model: `${model.provider}/${model.id}` };
 	}
+	const profileDefinitions = mergeProfileDefinitions(definitions);
+	delete profileDefinitions.pendingDefault;
 	return {
 		...settings,
 		defaultProvider: resolved.parent.provider,
 		defaultModel: resolved.parent.id,
-		modelProfiles: { ...mergeProfileDefinitions(definitions), active: name },
+		modelProfiles: { ...profileDefinitions, active: name },
 		subagents: { ...subagents, agentOverrides: updated },
 	};
 }

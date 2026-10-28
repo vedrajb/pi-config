@@ -3,7 +3,7 @@ import test from "node:test";
 import {
 	extractAmazonBedrockEnvironment,
 	readAmazonBedrockEnvironment,
-} from "./index.ts";
+} from "../../../../_archive/pi-aws-sso/src/index.ts";
 
 test("extractAmazonBedrockEnvironment returns Bedrock AWS settings only", () => {
 	assert.deepEqual(

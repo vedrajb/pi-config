@@ -74,7 +74,7 @@ Explain consequences clearly.
 
 ## Commit messages
 
-- Before ANY `git commit`, MUST read `C:\Users\Kira9\.agents\skills\caveman-commit\SKILL.md` and write the message per its rules. No exceptions.
+- Before ANY `git commit`, MUST read `{{CAVEMAN_COMMIT_SKILL}}` and write the message per its rules. No exceptions.
 - If user provides a link to a ticket maintain the format "[xyz](<some-url>/xyz)"
 - This applies to subagents too. They run with `--no-skills`, so read the SKILL.md by path.
 - The `pi-guardrails` extension blocks `git commit` until that file has been read in the session.

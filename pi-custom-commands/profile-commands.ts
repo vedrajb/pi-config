@@ -94,7 +94,7 @@ export function registerProfiles(pi: ExtensionAPI, options: { agentDir: string }
 				if (!name || name === "list") {
 					const overrides = snapshot.settings.subagents?.agentOverrides ?? {};
 					report(ctx, name === "list" ? `Profiles: ${Object.keys(definitions.profiles).join(", ")}`
-						: `Last applied profile: ${definitions.active ?? "none"}\nSelected: ${ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "none"}\nDefault: ${snapshot.settings.defaultProvider ?? "?"}/${snapshot.settings.defaultModel ?? "?"}\n${["scout", "worker", "reviewer"].map((role) => `${role}: ${overrides[role]?.model ?? "agent default"}`).join("\n")}`);
+						: `Last applied profile: ${definitions.active ?? "none"}${definitions.pendingDefault ? `\nPending first-install default: ${definitions.pendingDefault}` : ""}\nSelected: ${ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "none"}\nDefault: ${snapshot.settings.defaultProvider ?? "?"}/${snapshot.settings.defaultModel ?? "?"}\n${["scout", "worker", "reviewer"].map((role) => `${role}: ${overrides[role]?.model ?? "agent default"}`).join("\n")}`);
 					return;
 				}
 				if (!Object.hasOwn(definitions.profiles, name)) throw new Error(`Unknown profile: ${name}. Use /profile list.`);

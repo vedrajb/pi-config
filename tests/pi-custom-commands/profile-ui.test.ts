@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import registerAgentShortcuts from "./agent-shortcuts.ts";
-import { registerProfileShortcuts } from "./profile-shortcuts.ts";
+import registerAgentShortcuts from "../../pi-custom-commands/agent-shortcuts.ts";
+import { registerProfileShortcuts } from "../../pi-custom-commands/profile-shortcuts.ts";
 
 function workflowFixture(active?: unknown, hasUI = true) {
 	const settings: any = { modelProfiles: { active } };

@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+const { spawnSync } = require("node:child_process");
+const { isDeepStrictEqual } = require("node:util");
+
+const settingsPath = ".pi.user/settings.json";
+
+function git(args, allowed = [0]) {
+	const result = spawnSync("git", args, { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
+	if (result.error || !allowed.includes(result.status)) {
+		throw new Error(`Cannot check staged deviceId: ${result.error?.message || result.stderr.trim() || "Git command failed"}`);
+	}
+	return result;
+}
+
+function readSettings(object) {
+	const text = git(["cat-file", "blob", object]).stdout;
+	let settings;
+	try {
+		settings = JSON.parse(text);
+	} catch {
+		throw new Error(`Cannot check deviceId: ${settingsPath} contains invalid JSON in HEAD or the index.`);
+	}
+	if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+		throw new Error(`Cannot check deviceId: ${settingsPath} must contain a JSON object.`);
+	}
+	return settings;
+}
+
+function checkDeviceId() {
+	if (git(["diff", "--cached", "--quiet", "--no-ext-diff", "--", settingsPath], [0, 1]).status === 0) return;
+	if (git(["rev-parse", "--verify", "--quiet", "HEAD"], [0, 1]).status === 1) return;
+	const previous = git(["ls-tree", "-z", "HEAD", "--", settingsPath]).stdout;
+	if (!previous) return;
+	const object = previous.match(/^\d+ blob ([a-f0-9]+)\t/);
+	if (!object) throw new Error(`Cannot check deviceId: unexpected HEAD entry for ${settingsPath}.`);
+	const before = readSettings(object[1]);
+	const staged = git(["ls-files", "--stage", "-z", "--", settingsPath]).stdout;
+	let after;
+	if (staged) {
+		const entry = staged.match(/^\d+ ([a-f0-9]+) 0\t[^\0]+\0$/);
+		if (!entry) throw new Error(`Cannot check deviceId: unresolved or unexpected index entry for ${settingsPath}.`);
+		after = readSettings(entry[1]);
+	}
+	if (!isDeepStrictEqual(before.deviceId, after?.deviceId)) {
+		throw new Error(`Commit blocked: staged ${settingsPath} changes or removes deviceId.\nKeep the deviceId from HEAD and stage the file again. Other settings changes are allowed.`);
+	}
+}
+
+try {
+	checkDeviceId();
+} catch (error) {
+	console.error(error.message);
+	process.exitCode = 1;
+}

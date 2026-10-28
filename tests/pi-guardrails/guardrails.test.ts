@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, test } from "node:test";
-import guardrails, { findSearchCommand, isGitCommit, isSkillRead, isSubagentProcess } from "./guardrails.ts";
+import guardrails, { findSearchCommand, isGitCommit, isSkillRead, isSubagentProcess } from "../../pi-guardrails/guardrails.ts";
 
 const SKILL = "C:\\Users\\x\\.agents\\skills\\caveman-commit\\SKILL.md";
 let saved: NodeJS.ProcessEnv;

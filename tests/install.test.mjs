@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { backupUserConfig, copyUserConfig, installPackages, loadConfig, mergeInstructions, mergeSettings, migrateUserConfig, resolveSource } from "./install.mjs";
+import { backupUserConfig, copyUserConfig, installPackages, loadConfig, mergeInstructions, mergeSettings, migrateUserConfig, resolveSource } from "../install.mjs";
 
-const repoRoot = dirname(fileURLToPath(import.meta.url));
+const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
 function tempDir() {
 	return mkdtempSync(join(tmpdir(), "pi-install-test-"));

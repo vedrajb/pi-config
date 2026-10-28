@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import registerAgentShortcuts from "./agent-shortcuts.ts";
+import registerAgentShortcuts from "../../pi-custom-commands/agent-shortcuts.ts";
 
 function createTestPi(entries: any[] = [], hasUI = false) {
 	const shortcuts = new Map<string, { handler: (ctx: any) => Promise<void> }>();

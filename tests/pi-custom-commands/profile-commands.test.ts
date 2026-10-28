@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
-import { assertNoActiveSubagents, registerProfiles } from "./profile-commands.ts";
+import { assertNoActiveSubagents, registerProfiles } from "../../pi-custom-commands/profile-commands.ts";
 
 function fixture() {
 	const root = resolve(mkdtempSync(join(tmpdir(), "pi-profile-command-")));

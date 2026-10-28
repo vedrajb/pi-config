@@ -3,8 +3,8 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { applyProfileSettings, assertNoProfileConflicts, assertProfileScope, defaultProfiles, matchesSelector, mergeProfileDefinitions, resolveProfile } from "./model-profiles.mjs";
-import { readSettingsSnapshot, restoreProfileSettings, writeProfileSettings } from "./profile-storage.mjs";
+import { applyProfileSettings, assertNoProfileConflicts, assertProfileScope, defaultProfiles, matchesSelector, mergeProfileDefinitions, resolveProfile } from "../../pi-custom-commands/model-profiles.mjs";
+import { readSettingsSnapshot, restoreProfileSettings, writeProfileSettings } from "../../pi-custom-commands/profile-storage.mjs";
 
 const models = [
 	["openai", "gpt-6.1-sol"], ["openai", "gpt-6-luna"], ["openai", "gpt-6.1-terra"],

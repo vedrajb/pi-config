@@ -15,6 +15,6 @@
 		"@earendil-works/pi-coding-agent": "*"
 	},
 	"scripts": {
-		"test": "node --test guardrails.test.ts"
+		"test": "node --test ../tests/pi-guardrails/guardrails.test.ts"
 	}
 }

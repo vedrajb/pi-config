@@ -16,6 +16,6 @@
     "@earendil-works/pi-coding-agent": "*"
   },
   "scripts": {
-    "test": "node --test agent-shortcuts.test.ts model-profiles.test.mjs profile-commands.test.ts workflow-race.test.ts profile-ui.test.ts"
+    "test": "node --test ../tests/pi-custom-commands/agent-shortcuts.test.ts ../tests/pi-custom-commands/model-profiles.test.mjs ../tests/pi-custom-commands/profile-commands.test.ts ../tests/pi-custom-commands/workflow-race.test.ts ../tests/pi-custom-commands/profile-ui.test.ts ../tests/pi-custom-commands/profile-default.test.ts"
   }
 }

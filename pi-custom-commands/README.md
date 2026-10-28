@@ -107,7 +107,22 @@ To add or replace a profile, edit the `modelProfiles.profiles` object:
 Each profile requires `model` and selectors for scout, worker, and reviewer;
 additional agent roles may be included. Reapplying a profile resolves its selectors
 against the current model scope, allowing versions to change without editing the
-profile. No profile is selected automatically during installation.
+profile.
+
+### First-install default
+
+When `settings.json` does not exist **at the start of installation**, the installer
+queues Claude as `modelProfiles.pendingDefault: "claude"`. Pi applies it on the
+first idle interactive/RPC startup after pi-subagents is ready, through the same
+`/profile claude` command and scoped-model, credential, and conflict checks. Missing
+models/authentication or cancelled ambiguity leave it pending, not falsely active;
+authenticate and run `/profile claude`, or reload to retry. Headless sessions do not
+auto-switch. `/profile` shows the pending default separately from the active profile.
+
+Existing settings files, even empty ones or ones with no selected profile, never
+receive this automatic default. Reinstalling preserves any selected profile and
+model defaults. Successful selection of any profile clears the pending request,
+so choosing Codex cannot be undone by a later automatic Claude switch.
 
 Applying a profile persists concrete `defaultProvider`, `defaultModel`, agent
 `subagents.agentOverrides.<role>.model` values, and `modelProfiles.active`. Other
@@ -136,7 +151,7 @@ restore a backup blindly over settings changed afterward. Runtime profile select
 does not rewrite this repository's `.pi.user/settings.json` template.
 
 The installer adds missing built-in definitions while preserving user profiles,
-active selection, defaults, and unrelated settings. Agent Markdown files are not
+active selection, defaults, and unrelated settings in existing installations. Agent Markdown files are not
 rewritten by the profile command.
 
 To install the package globally from the workspace root:

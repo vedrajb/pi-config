@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { dirname, posix, resolve, win32 } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { mergeProfileDefinitions } from "./pi-custom-commands/model-profiles.mjs";
 
@@ -62,6 +62,7 @@ const userConfigEntries = ["agents", "AGENTS.md"];
 export function copyUserConfig({
 	sourceDir = resolve(repoRoot, ".pi.user"),
 	targetDir = resolve(homedir(), ".pi", "agent"),
+	homeDir = homedir(),
 	dryRun = false,
 	log = console.log,
 	copy = copyRecursive,
@@ -74,13 +75,23 @@ export function copyUserConfig({
 		const dest = resolve(targetDir, entry);
 		log(`${prefix}copy ${src} -> ${dest}`);
 		if (!dryRun) {
-			if (entry === "AGENTS.md" && copy === copyRecursive && existsSync(dest)) {
-				writeFileSync(dest, mergeInstructions(readFileSync(dest, "utf8"), readFileSync(src, "utf8")));
+			if (entry === "AGENTS.md" && copy === copyRecursive) {
+				const incoming = readFileSync(src, "utf8");
+				const content = existsSync(dest) ? mergeInstructions(readFileSync(dest, "utf8"), incoming) : incoming;
+				writeFileSync(dest, renderInstructionPaths(content, homeDir));
 			} else copy(src, dest);
 		}
 		copied.push(dest);
 	}
 	return copied;
+}
+
+export function renderInstructionPaths(content, homeDir = homedir()) {
+	const paths = /^(?:[a-z]:[\\/]|\\\\)/i.test(homeDir) ? win32 : posix;
+	const skillPath = paths.join(homeDir, ".agents", "skills", "caveman-commit", "SKILL.md");
+	return content
+		.replaceAll("{{CAVEMAN_COMMIT_SKILL}}", () => skillPath)
+		.replace(/(?<![\w:\/\\])(?:[a-z]:[\\/]|\\\\|\/)(?:[^\\/\r\n`]+[\\/])*\.agents[\\/]skills[\\/]caveman-commit[\\/]SKILL\.md\b/gi, () => skillPath);
 }
 
 export function mergeInstructions(existing, incoming) {
@@ -137,6 +148,7 @@ export function migrateUserConfig(config, {
 	baseDir = repoRoot,
 	sourceDir = resolve(baseDir, ".pi.user"),
 	targetDir = resolve(homedir(), ".pi", "agent"),
+	homeDir = homedir(),
 	dryRun = false,
 	run = runPiInstall,
 	update = runPiUpdate,
@@ -148,14 +160,18 @@ export function migrateUserConfig(config, {
 		if (!existsSync(resolve(sourceDir, entry))) throw new Error(`User config path not found: ${resolve(sourceDir, entry)}`);
 	}
 	const settingsPath = resolve(targetDir, "settings.json");
+	const firstInstall = !existsSync(settingsPath);
 	mergeSettings(existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {});
 	const backupDir = backupUserConfig({ targetDir, dryRun, log });
 	installPackages(config, { baseDir, dryRun, run, update, log });
-	copyUserConfig({ sourceDir, targetDir, dryRun, log });
+	copyUserConfig({ sourceDir, targetDir, homeDir, dryRun, log });
 	log(`${dryRun ? "[dry-run] " : ""}merge workflow settings -> ${settingsPath}`);
+	if (firstInstall) log(`${dryRun ? "[dry-run] " : ""}queue first-install claude profile for activation in Pi`);
 	if (!dryRun) {
 		const existing = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {};
-		writeFileSync(settingsPath, `${JSON.stringify(mergeSettings(existing), null, 2)}\n`);
+		const settings = mergeSettings(existing);
+		if (firstInstall && !settings.modelProfiles.active) settings.modelProfiles.pendingDefault ??= "claude";
+		writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
 	}
 	for (const source of config.removePackages ?? []) {
 		const existing = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, "utf8")) : {};
