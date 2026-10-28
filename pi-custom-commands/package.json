@@ -8,13 +8,14 @@
   ],
   "pi": {
     "extensions": [
-      "./agent-shortcuts.ts"
+      "./agent-shortcuts.ts",
+      "./profiles.ts"
     ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
   "scripts": {
-    "test": "node --test agent-shortcuts.test.ts"
+    "test": "node --test agent-shortcuts.test.ts model-profiles.test.mjs profile-commands.test.ts workflow-race.test.ts profile-ui.test.ts"
   }
 }

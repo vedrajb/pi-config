@@ -8,6 +8,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { mergeProfileDefinitions } from "./pi-custom-commands/model-profiles.mjs";
 
 const repoRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -107,6 +108,7 @@ export function mergeSettings(existing) {
 	}
 	return {
 		...existing,
+		modelProfiles: mergeProfileDefinitions(existing.modelProfiles),
 		subagents: {
 			...existing.subagents,
 			agentOverrides: {

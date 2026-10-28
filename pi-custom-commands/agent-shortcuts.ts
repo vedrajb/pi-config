@@ -23,10 +23,13 @@ function isWorkflowState(value: unknown): value is WorkflowState {
 export default function (pi: ExtensionAPI): void {
 	if (process.env.PI_SUBAGENT_CHILD === "1") return;
 	let state: WorkflowState | undefined;
+	let switching = false;
 
 	const showWorkflow = (ctx: ExtensionContext) => {
 		if (ctx.hasUI) {
-			ctx.ui.setWidget(entryType, [`Workflow: ${state?.mode === "none" || !state ? "normal" : state.mode}`], { placement: "aboveEditor" });
+			const profile = (pi.getSettings() as { modelProfiles?: { active?: unknown } }).modelProfiles?.active;
+			const label = typeof profile === "string" && profile.trim() ? ` | Profile: ${profile}` : "";
+			ctx.ui.setWidget(entryType, [`Workflow: ${state?.mode === "none" || !state ? "normal" : state.mode}${label}`], { placement: "aboveEditor" });
 		}
 	};
 	const restoreDefaults = async (ctx: ExtensionContext, thinking: ThinkingLevel) => {
@@ -52,7 +55,13 @@ export default function (pi: ExtensionAPI): void {
 		const previous = state;
 		state = undefined;
 		for (const entry of ctx.sessionManager.getBranch()) {
-			if (entry.type === "custom" && entry.customType === entryType && isWorkflowState(entry.data)) state = entry.data;
+			if (entry.type === "custom" && entry.customType === entryType && isWorkflowState(entry.data)) {
+				if (state && entry.data.tools.includes("start_implementation")
+					&& entry.data.tools.every((tool) => planningTools.has(tool))
+					&& state.tools.some((tool) => !planningTools.has(tool))) {
+					state = { ...entry.data, tools: [...state.tools] };
+				} else state = entry.data;
+			}
 		}
 		if (!state && previous && previous.mode !== "none") {
 			pi.setActiveTools(previous.tools);
@@ -81,7 +90,9 @@ export default function (pi: ExtensionAPI): void {
 		defaultActive: false,
 		parameters: { type: "object", properties: {}, additionalProperties: false } as Parameters<ExtensionAPI["registerTool"]>[0]["parameters"],
 		execute: async (_toolCallId, _params, _signal, _onUpdate, ctx) => {
+			if (switching) throw new Error("A workflow switch is already in progress; retry when it finishes.");
 			if (state?.mode === "plan") {
+				switching = true;
 				const previous = state;
 				state = { ...state, mode: "none" };
 				try {
@@ -89,6 +100,8 @@ export default function (pi: ExtensionAPI): void {
 				} catch (error) {
 					state = previous;
 					throw error;
+				} finally {
+					switching = false;
 				}
 				pi.appendEntry(entryType, state);
 				showWorkflow(ctx);
@@ -128,19 +141,25 @@ export default function (pi: ExtensionAPI): void {
 		pi.registerCommand(mode === "none" ? "normal" : mode, {
 			description: `Switch to the ${mode === "none" ? "normal" : mode} parent workflow`,
 			handler: async (_args, ctx) => {
-				await ctx.waitForIdle();
-				const previous = state;
-				if (!state || state.mode === "none") {
-					state = { mode, tools: pi.getActiveTools(), thinking: pi.getThinkingLevel() };
-				} else state = { ...state, mode };
+				if (switching) throw new Error("A workflow switch is already in progress; retry when it finishes.");
+				switching = true;
 				try {
-					await apply(ctx);
-				} catch (error) {
-					state = previous;
-					throw error;
+					await ctx.waitForIdle();
+					const previous = state;
+					if (!state || state.mode === "none") {
+						state = { mode, tools: pi.getActiveTools(), thinking: pi.getThinkingLevel() };
+					} else state = { ...state, mode };
+					try {
+						await apply(ctx);
+					} catch (error) {
+						state = previous;
+						throw error;
+					}
+					pi.appendEntry(entryType, state);
+					showWorkflow(ctx);
+				} finally {
+					switching = false;
 				}
-				pi.appendEntry(entryType, state);
-				showWorkflow(ctx);
 			},
 		});
 	}

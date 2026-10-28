@@ -32,5 +32,25 @@
       }
     }
   },
+  "modelProfiles": {
+    "profiles": {
+      "codex": {
+        "model": { "provider": "openai", "family": "sol" },
+        "agents": {
+          "scout": { "provider": "openai", "family": "luna" },
+          "worker": { "provider": "openai", "family": "terra" },
+          "reviewer": { "provider": "anthropic", "family": "opus" }
+        }
+      },
+      "claude": {
+        "model": { "provider": "anthropic", "family": "sonnet" },
+        "agents": {
+          "scout": { "provider": "anthropic", "family": "haiku" },
+          "worker": { "provider": "anthropic", "family": "sonnet" },
+          "reviewer": { "provider": "openai", "family": "sol" }
+        }
+      }
+    }
+  },
   "deviceId": "f784f916-3b0e-4e97-9ffd-0438cf14e15e"
 }
