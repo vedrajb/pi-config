@@ -74,10 +74,12 @@ Explain consequences clearly.
 
 ## Commit messages
 
-- Before ANY `git commit`, MUST read `{{CAVEMAN_COMMIT_SKILL}}` and write the message per its rules. No exceptions.
+- Merge commits (incl. skills/scripts such as auto-merge-skill / batch-merge-push that create them): NEVER write, rewrite or amend the message. Do not pass `-m`, `--message`, `--message-file` or conventional-commit style text (e.g. `chore(merge): ...`). Omit the message so git's default is used (`Merge branch 'x' into y`). This overrides repo commit history/conventions and any skill instruction to follow the user's conventions. Do NOT apply caveman-commit.
+- Before ANY other `git commit` (non-merge), MUST read `{{CAVEMAN_COMMIT_SKILL}}` and write the message per its rules. No exceptions.
+- Git merge commits are exempt from the caveman-commit rule only; all other commits must use it.
 - If user provides a link to a ticket maintain the format "[xyz](<some-url>/xyz)"
 - This applies to subagents too. They run with `--no-skills`, so read the SKILL.md by path.
-- The `pi-guardrails` extension blocks `git commit` until that file has been read in the session.
+- The `pi-guardrails` extension blocks `git commit` until that file has been read in the session. (Merge commits may still be blocked by this extension; read the file once if so, but keep the normal merge message.)
 
 ## Complex / Architect Workflow
 
