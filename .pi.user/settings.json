@@ -2,7 +2,7 @@
   "lastChangelogVersion": "1.4.0",
   "defaultThinkingLevel": "medium",
   "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-5-5",
+  "defaultModel": "claude-opus-5-5",
   "theme": "dark",
   "packages": [
     "..\\..\\workspace\\_ai\\pi-config\\pi-custom-commands",
@@ -43,7 +43,7 @@
         }
       },
       "claude": {
-        "model": { "provider": "anthropic", "family": "sonnet" },
+        "model": { "provider": "anthropic", "family": "opus" },
         "agents": {
           "scout": { "provider": "anthropic", "family": "haiku" },
           "worker": { "provider": "anthropic", "family": "sonnet" },
