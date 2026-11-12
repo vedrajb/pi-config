@@ -63,6 +63,11 @@ Planning and architect workflows use high thinking and keep the current model;
 `/normal` restores prior tools and the configured default model/effort.
 See [command details](pi-custom-commands/README.md).
 
+Use `/review <instructions>` for a one-shot read-only reviewer without switching
+workflows. With no instructions, it reviews current uncommitted changes. Results
+arrive through background subagent notifications; the parent model, effort, tools,
+and workflow stay unchanged.
+
 In normal mode, only scout delegation is allowed. Switch to plan or architect
 before delegating to other specialists. Architect implementation uses worker,
 which may use reviewer for independent review.

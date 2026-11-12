@@ -9,6 +9,14 @@ by `pi-subagents`; these commands do not switch primary agents or start children
 | `/architect` | Complex orchestration instructions, normal tools, high thinking. |
 | `/normal` | Parent implementation with scout-only delegation; restore prior tools and configured default model/effort. |
 
+`/review <instructions>` starts a one-shot, read-only `reviewer` subagent through
+pi-subagents. For example, `/review check the current diff for regressions`.
+With no instructions, it reviews current uncommitted changes. Results arrive
+through the usual background subagent notification. The command keeps the current
+workflow, parent model, thinking level, and tools unchanged, including in plan mode.
+It uses the configured reviewer model and requires pi-subagents to be enabled.
+Run `/reload` after updating this extension.
+
 The current workflow is always shown above the input as `Workflow: normal`,
 `Workflow: plan`, or `Workflow: architect`. The label updates when switching modes
 and restores when reloading, resuming, or navigating the session tree. When a

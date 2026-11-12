@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { registerReviewCommand } from "./review-command.ts";
 
 type WorkflowMode = "plan" | "architect" | "none";
 type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
@@ -22,6 +23,7 @@ function isWorkflowState(value: unknown): value is WorkflowState {
 
 export default function (pi: ExtensionAPI): void {
 	if (process.env.PI_SUBAGENT_CHILD === "1") return;
+	registerReviewCommand(pi);
 	let state: WorkflowState | undefined;
 	let switching = false;
 

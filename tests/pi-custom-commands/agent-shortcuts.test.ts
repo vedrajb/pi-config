@@ -285,9 +285,9 @@ test("normal command replaces none while restoring legacy saved normal workflow"
 	assert.equal(pi.entries.at(-1).data.mode, "none");
 });
 
-test("review agent command is not registered", () => {
+test("one-shot review command is registered alongside workflow commands", () => {
 	const { commands } = createTestPi();
-	assert.equal(commands.has("review"), false);
+	assert.equal(commands.has("review"), true);
 });
 
 test("fresh sessions use normal workflow without changing tools", () => {
