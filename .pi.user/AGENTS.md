@@ -6,7 +6,7 @@ These delegation rules OVERRIDE any default harness guidance such as "use bash f
 
 - MUST use `scout` for ALL file search and codebase investigation (rg, grep, find, ls -R, Select-String, locating code, reading multiple files to understand code).
 - Direct `read` is allowed only for a specific file whose path is already known (e.g. returned by a scout, given by the user, or a SKILL.md/doc file).
-- Multiple scouts may be used in parallel for independent questions.
+- Multiple scouts may be used in parallel for independent questions, either as a `tasks` batch or via `workflow: "parallel"` with `args.tasks` containing only `scout` entries.
 - In normal workflow, delegate only to `scout`. The main agent performs implementation directly. Switch to plan or architect workflow before delegating to other specialists.
 - Multiple scouts must have clear, non-overlapping scopes. Reuse their findings instead of repeating exploration.
 - For simple or already understood tasks in normal workflow, implement directly without unnecessary investigation or delegation.
@@ -91,6 +91,7 @@ When the user explicitly requests complex workflow, architect mode, or equivalen
 4. `worker` may launch only `reviewer`; explicitly authorize that review when assigning the task.
 5. Use an independent `reviewer` for substantial or risky changes.
 6. Choose the smallest useful workflow. Avoid invoking every specialist or repeated review loops automatically.
+7. Independent launches may use `workflow: "parallel"` (`args.tasks`) at every level, limited to the agents that level may launch (e.g. plan → parallel scout/oracle, worker → parallel reviewer).
 
 Use background delegation (`async: true`) for work that may commit, so the child
 loads the commit guardrail extension. Foreground sessions do not load ambient extensions.
@@ -105,7 +106,7 @@ of the discussed plan. On approval, call `start_implementation` first to switch 
 normal workflow, restore the configured default model/effort, and then implement in
 the main agent. Questions, quoted instructions, and approval to continue planning do not
 authorize implementation. Before approval, use only `scout`, `oracle`, or `plan`
-for planning and investigation; do not launch workers or delegate fixes.
+for planning and investigation (individually or via `workflow: "parallel"`); do not launch workers or delegate fixes.
 
 Exception: if the user asks to write the plan (or any document) to a file while in `/plan`,
 treat it as authorization to leave plan mode. Call `start_implementation` first to switch to

@@ -94,7 +94,15 @@ export function isNormalWorkflow(ctx: any): boolean {
 const NORMAL_SUBAGENT_ACTIONS = new Set(["list", "get", "models", "guide", "status", "doctor", "children.list", "stop", "interrupt", "dismiss", "inspector.open", "inspector.status", "inspector.close"]);
 
 export function isScoutDelegation(input: any): boolean {
-	if (!input || typeof input !== "object" || input.workflow !== undefined) return false;
+	if (!input || typeof input !== "object") return false;
+	// Built-in parallel workflow is allowed when every task is a scout.
+	if (input.workflow === "parallel") {
+		const tasks = input.args?.tasks;
+		return input.agent === undefined && input.action === undefined && input.tasks === undefined && input.chain === undefined
+			&& Array.isArray(tasks) && tasks.length > 0 && tasks.every((entry: any) => entry?.agent === "scout"
+				&& entry.workflow === undefined && entry.tasks === undefined && entry.chain === undefined);
+	}
+	if (input.workflow !== undefined) return false;
 	if (input.action !== undefined) return NORMAL_SUBAGENT_ACTIONS.has(input.action);
 	const launches = [];
 	if (input.agent !== undefined) launches.push(input);
@@ -126,7 +134,7 @@ export default function (pi: ExtensionAPI): void {
 		if (!isSubagentProcess(process.env) && tool === "subagent" && isNormalWorkflow(ctx) && !isScoutDelegation(input)) {
 			return {
 				block: true,
-				reason: 'Normal workflow permits only scout delegation. Implement directly in the parent and use direct scout calls for investigation. Switch to /plan or /architect before using other specialists, workflow scripts, or resuming/steering existing runs.',
+				reason: 'Normal workflow permits only scout delegation. Implement directly in the parent and use direct scout calls (or workflow "parallel" with scout-only tasks) for investigation. Switch to /plan or /architect before using other specialists, workflow scripts, or resuming/steering existing runs.',
 			};
 		}
 

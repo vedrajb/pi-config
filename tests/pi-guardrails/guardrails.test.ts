@@ -82,6 +82,7 @@ test("normal workflow permits only scout launches, including legacy batches", ()
 		{ agent: "scout", task: "Inspect implementation", count: 3 },
 		{ tasks: [{ agent: "scout", task: "Code" }, { agent: "scout", task: "Tests" }] },
 		{ chain: [{ agent: "scout", task: "Code" }, { agent: "scout", task: "Config" }] },
+		{ workflow: "parallel", args: { tasks: [{ agent: "scout", task: "Code" }, { agent: "scout", task: "Tests", cwd: "x" }] } },
 	]) assert.equal(call("subagent", input), undefined);
 	for (const input of [
 		{ agent: "worker", task: "Implement" }, { agent: "plan" }, { agent: "oracle" }, { agent: "reviewer" },
@@ -89,6 +90,10 @@ test("normal workflow permits only scout launches, including legacy batches", ()
 		{ chain: [{ agent: "scout" }, { agent: "reviewer" }] },
 		{ workflow: true }, { workflow: "review" }, { action: "resume", runId: "existing" }, { action: "steer", runId: "existing" },
 		{ tasks: [] }, { agent: "scout", workflow: "hidden-script" },
+		{ workflow: "parallel" }, { workflow: "parallel", args: { tasks: [] } },
+		{ workflow: "parallel", args: { tasks: [{ agent: "scout" }, { agent: "worker" }] } },
+		{ workflow: "parallel", args: { tasks: [{ agent: "scout", workflow: "review" }] } },
+		{ workflow: "parallel", agent: "worker", args: { tasks: [{ agent: "scout" }] } },
 	]) assert.equal(call("subagent", input)?.block, true, JSON.stringify(input));
 	assert.equal(call("write", { path: "source.ts", content: "implementation" }), undefined);
 });
@@ -102,6 +107,20 @@ test("normal delegation restriction follows workflow state on resume and branch 
 	}
 	entries.length = 0;
 	assert.equal(call("subagent", { agent: "worker" })?.block, true);
+});
+
+test("parallel workflow is allowed in plan and architect workflows and in children", () => {
+	const entries: any[] = [];
+	const { call } = createTestPi(entries);
+	const parallel = { workflow: "parallel", args: { tasks: [{ agent: "scout" }, { agent: "oracle" }, { agent: "worker" }] } };
+	for (const mode of ["plan", "architect"]) {
+		entries.push({ type: "custom", customType: "pi-parent-workflow", data: { mode } });
+		assert.equal(call("subagent", parallel), undefined, mode);
+	}
+	entries.push({ type: "custom", customType: "pi-parent-workflow", data: { mode: "normal" } });
+	assert.equal(call("subagent", parallel)?.block, true);
+	process.env.PI_SUBAGENT_CHILD = "1";
+	assert.equal(call("subagent", { workflow: "parallel", args: { tasks: [{ agent: "reviewer" }, { agent: "reviewer" }] } }), undefined);
 });
 
 test("normal workflow retains fleet inspection and stop controls", () => {
